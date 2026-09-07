@@ -1,0 +1,4 @@
+# Se ignora respecto a la RAÍZ del proyecto (el contexto de build).
+# Docker lo reconoce por llamarse igual que el Dockerfile + ".dockerignore".
+bin/
+obj/

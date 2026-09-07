@@ -1,0 +1,23 @@
+﻿
+<AuthorizeView>
+    <Authorized>
+        <div style="padding-right:25px;">
+            <a href="Account/Manage">Hello, @context.User.Identity?.Name!</a>
+        </div>
+
+        <div>
+            <form @formname="frmLogout" action="Account/Logout" method="post">
+                <AntiforgeryToken />
+                <input type="hidden" name="ReturnUrl" value="Account/Login" />
+                <button type="submit" class="nav-link">
+                    <span class="bi bi-box-arrow-right" aria-hidden="true"></span> Logout
+                </button>
+            </form>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <div>
+            <a href="Account/Login" style="text-decoration:none;"><span class="bi bi-box-arrow-in-right" aria-hidden="true"></span>  Login</a>
+        </div>
+    </NotAuthorized>
+</AuthorizeView>

@@ -1,0 +1,69 @@
+@page "/docker/doc-apendice-hyperv"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Apéndice A · Instalación de Hyper-V — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-referencias" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Referencias</FluentAnchor>
+            <span class="doc-progress">18 / 23</span>
+            <FluentAnchor Href="/docker/doc-apendice-ubuntu" Appearance="Appearance.Lightweight">Apéndice A · Ubuntu 22.04 en Hyper-V <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Apéndice A</h1>
+            <h2 class="doc-title">Hyper-V, WSL y Docker</h2>
+        </header>
+
+        <article class="doc-content">
+            <h2 class="doc-h2">Guía de Instalación Hyper-V, WSL y Docker</h2>
+            <h3 class="doc-h3">Entornos de Virtualización y Docker</h3>
+            <h3 class="doc-h3">Instalación Hyper-V</h3>
+            <p class="doc-p">Hyper-V es el hipervisor de Microsoft para ejecutar máquinas virtuales en Windows. Solo está en las ediciones Pro, Enterprise y Education de Windows 11.</p>
+            
+            <h3 class="doc-h3">Requisitos previos</h3>
+            <p class="doc-p">Antes de instalar Hyper-V, hay que comprobar que el equipo cumple estos requisitos:</p>
+            <p class="doc-p">• Windows 11 Pro, Enterprise o Education (64 bits). No está disponible en Windows 11 Home.</p>
+            <p class="doc-p">• Procesador de 64 bits con compatibilidad con SLAT (Second Level Address Translation).</p>
+            <p class="doc-p">• Mínimo 4 GB de RAM (se recomiendan 8 GB o más).</p>
+            <p class="doc-p">• Virtualización habilitada en BIOS/UEFI (Intel VT-x o AMD-V).</p>
+            
+            <h3 class="doc-h3">Verificar compatibilidad del hardware</h3>
+            <p class="doc-p">Abrir una ventana de PowerShell como administrador y ejecutar:</p>
+            <pre class="doc-console">Systeminfo</pre>
+            <p class="doc-p">Al final del resultado, buscar "Requisitos de Hyper-V". Todo debe poner "Sí". Si la virtualización sale deshabilitada, hay que activarla en la BIOS/UEFI.</p>
+            
+            <h3 class="doc-h3">Habilitar la virtualización en BIOS/UEFI</h3>
+            <p class="doc-p">Si la virtualización está deshabilitada:</p>
+            <p class="doc-p">• Reiniciar el equipo y entrar en la BIOS/UEFI (normalmente pulsando F2, F10, DEL o ESC durante el arranque).</p>
+            <p class="doc-p">• Navegar a la sección de configuración del procesador o seguridad.</p>
+            <p class="doc-p">• Buscar la opción "Intel Virtualization Technology" (Intel VT-x) o "SVM Mode" (AMD-V) y habilitarla.</p>
+            <p class="doc-p">• Guardar cambios y reiniciar.</p>
+            
+            <h3 class="doc-h3">Instalar Hyper-V mediante la interfaz gráfica</h3>
+            <p class="doc-p">• Abrir el Panel de Control y seleccionar "Programas y características".</p>
+            <p class="doc-p">• En el panel izquierdo, hacer clic en "Activar o desactivar las características de Windows".</p>
+            <p class="doc-p">• En la ventana que aparece, marcar la casilla "Hyper-V" (se seleccionarán automáticamente "Herramientas de administración de Hyper-V" y "Plataforma de Hyper-V").</p>
+            <p class="doc-p">• Hacer clic en "Aceptar" y esperar a que se apliquen los cambios.</p>
+            <p class="doc-p">• Reiniciar el equipo cuando se solicite.</p>
+            
+            <h3 class="doc-h3">Instalar Hyper-V mediante PowerShell (alternativa)</h3>
+            <p class="doc-p">Abrir PowerShell como administrador y ejecutar:</p>
+            <pre class="doc-console">Enable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V -All</pre>
+            <p class="doc-p">Confirmar la operación y reiniciar el equipo cuando se indique.</p>
+            
+            <h3 class="doc-h3">Verificar la instalación</h3>
+            <p class="doc-p">Tras el reinicio, buscar "Administrador de Hyper-V" en el menú Inicio. Si aparece, ya está instalado.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-referencias" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Referencias</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-apendice-ubuntu" Appearance="Appearance.Lightweight">Apéndice A · Ubuntu 22.04 en Hyper-V <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

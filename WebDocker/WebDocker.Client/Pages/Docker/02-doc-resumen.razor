@@ -1,0 +1,35 @@
+@page "/docker/doc-resumen"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Resumen — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-portada" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Portada</FluentAnchor>
+            <span class="doc-progress">2 / 23</span>
+            <FluentAnchor Href="/docker/doc-abstract" Appearance="Appearance.Lightweight">Abstract <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Resumen</h1>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">La contenedorización ha pasado en pocos años de ser una tecnología emergente a convertirse en la forma habitual de empaquetar y desplegar aplicaciones. Docker tiene mucho que ver con esa generalización: estandarizó algo que antes se hacía a mano y de maner a bastante desordenada. Pero al mismo tiempo dejó un detalle abierto, y es que el día a día de la gestión sigue ocurriendo en la terminal. La línea de comandos es potente, no se discute, pero no resulta accesible para todos los perfiles, en particular para quienes no están familiarizados con la administración de sistemas.</p>
+            <p class="doc-p">De ahí nace este Trabajo de Fin de Grado, una plataforma web que permite gestionar contenedores Docker desde el navegador sin tener que memorizar comandos ni saltar entre ventanas de la terminal. La idea no es competir con herramientas como Portainer o Rancher, sino entender qué hay debajo construyendo una propia desde cero. Los objetivos principales son, analizar por dentro la arquitectura y la API REST de Docker, especificar los requisitos del sistema, diseñar una arquitectura en capas, implementar una plataforma funcional con operaciones CRUD sobre contenedores, incorporar autenticación y autorización con JWT y RBAC, evaluar el resultado en términos de usabilidad y reducción real de la dependencia de la CLI, y garantizar que todo funcione tanto en Linux como en Windows.</p>
+            <p class="doc-p">La metodología ha sido iterativa e incremental, organizada en cinco módulos funcionales, autenticación y gestión de cuentas, gestión básica de contenedores, monitoreo y logs, gestión de imágenes/volúmenes/redes (módulo opcional para una segunda fase) y, por último, medidas de seguridad avanzadas y optimización. El stack escogido es íntegramente Microsoft: ASP.NET Core 10.0 y Entity Framework Core 10.0 en el servidor, Blazor con renderizado híbrido (Server + WebAssembly) en el cliente, y la librería Docker.Dot Net como puente con el motor de Docker. Los componentes visuales se apoyan en Microsoft Fluent UI.</p>
+            <p class="doc-p">El resultado es una plataforma estable y funcional. Permite registrar varios servidores Docker remotos con TLS, gestionar el ciclo de vida de los contenedores, administrar usuarios y roles, y adapta la interfaz al perfil del usuario que se conecta. Como línea futura quedan las pruebas de extremo a extremo, el despliegue en un servidor real con dominio y certificado propios, y la medición del rendimiento con carga real. La principal contribución del trabajo es demostrar que es posible llevar la experiencia de la CLI de Docker a una interfaz visual sin perder por el camino la potencia de la API, y, sobre todo, bajar la barrera de entrada para quien hoy se queda fuera por no manejarse con la terminal.</p>
+            <p class="doc-p">Palabras clave: Docker, contenedorización, gestión de contenedores, Blazor, ASP.NET Core, Docker.DotNet, plataforma web, JWT, RBAC, interfaz gráfica, DevOps.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-portada" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Portada</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-abstract" Appearance="Appearance.Lightweight">Abstract <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

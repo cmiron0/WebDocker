@@ -1,0 +1,95 @@
+@page "/docker/doc-apendice-wsl"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Apéndice A · WSL en Windows 11 — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-apendice-ubuntu" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Ubuntu 22.04 en Hyper-V</FluentAnchor>
+            <span class="doc-progress">20 / 23</span>
+            <FluentAnchor Href="/docker/doc-apendice-docker" Appearance="Appearance.Lightweight">Apéndice A · Instalación de Docker y muestras <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Apéndice A</h1>
+            <h2 class="doc-title">WSL en Windows 11</h2>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">WSL (Windows Subsystem for Linux) ejecuta distribuciones de Linux en Windows sin necesitar una VM tradicional. WSL 2 usa un kernel Linux real, con compatibilidad total con las llamadas del sistema.</p>
+            
+            <h3 class="doc-h3">Requisitos previos</h3>
+            <p class="doc-p">• Windows 11 (cualquier edición, incluida Home).</p>
+            <p class="doc-p">• Virtualización habilitada en BIOS/UEFI.</p>
+            <p class="doc-p">• Windows actualizado a la versión más reciente disponible.</p>
+            
+            <h3 class="doc-h3">Instalación rápida de WSL (recomendada)</h3>
+            <p class="doc-p">Abrir PowerShell o Símbolo del sistema como administrador y ejecutar:</p>
+            
+            <pre class="doc-console">wsl –install</pre>
+            
+            <p class="doc-p">Esto instala WSL 2 con la Ubuntu por defecto (la LTS más reciente). Después, reiniciar el equipo.</p>
+            <p class="doc-nota"><strong>Nota:</strong> A partir de Windows 11, WSL 2 es la versión predeterminada. No es necesario instalar WSL 1 previamente.</p>
+            
+            <h3 class="doc-h3">Instalación específica de Ubuntu 22.04 LTS</h3>
+            <p class="doc-p">Si se desea instalar Ubuntu 22.04 LTS de forma específica (en caso de que la versión por defecto sea otra):</p>
+            
+            <pre class="doc-console">wsl --install -d Ubuntu-22.04</pre>
+            
+            <p class="doc-p">Si el comando anterior no reconoce la distribución, verificar las disponibles con:</p>
+            
+            <pre class="doc-console">wsl --list –online</pre>
+            
+            <p class="doc-p">Y seleccionar la correspondiente a Ubuntu 22.04 LTS.</p>
+            
+            <h3 class="doc-h3">Primer inicio y configuración</h3>
+            <p class="doc-p">Tras reiniciar, Ubuntu arranca solo o se abre desde el menú Inicio. La primera vez:</p>
+            <p class="doc-p">• Esperar a que se complete la extracción del sistema de archivos (puede tardar unos minutos).</p>
+            <p class="doc-p">• Introducir un nombre de usuario para el entorno Linux (no tiene por qué coincidir con el de Windows).</p>
+            <p class="doc-p">• Establecer una contraseña para el usuario.</p>
+            <p class="doc-p">• Actualizar el sistema ejecutando:</p>
+            <p class="doc-p"><pre class="doc-console">sudo apt update &amp;&amp; sudo apt upgrade -y</pre></p>
+
+            <h3 class="doc-h3">Comandos útiles de WSL</h3>
+            <p class="doc-p">Se ejecutan desde PowerShell o CMD de Windows:</p>
+
+            <br />
+            <table class="doc-table">
+                <caption>Comandos útiles de WSL</caption>
+                <thead>
+                    <tr>
+                        <th>Comando</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>wsl --list --verbose</code></td><td>Listar distribuciones instaladas y su estado</td></tr>
+                    <tr><td><code>wsl --set-default Ubuntu-22.04</code></td><td>Establecer Ubuntu 22.04 como distribución predeterminada</td></tr>
+                    <tr><td><code>wsl --shutdown</code></td><td>Apagar todas las instancias de WSL</td></tr>
+                    <tr><td><code>wsl --status</code></td><td>Verificar el estado y versión de WSL</td></tr>
+                    <tr><td><code>wsl --update</code></td><td>Actualizar WSL a la última versión disponible</td></tr>
+                </tbody>
+            </table>
+
+            
+            <h3 class="doc-h3">Acceso al sistema de archivos</h3>
+            <p class="doc-p">Desde Windows, se puede acceder a los archivos de la distribución Linux en la ruta:</p>
+            
+            <pre class="doc-console">\\wsl$\Ubuntu-22.04</pre>
+            
+            <p class="doc-p">Desde Ubuntu WSL, se puede acceder a las unidades de Windows en:</p>
+            <pre class="doc-console">/mnt/c/ (para C:)</pre>
+            <pre class="doc-console">/mnt/d/ (para D:)</pre>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-apendice-ubuntu" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Ubuntu 22.04 en Hyper-V</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-apendice-docker" Appearance="Appearance.Lightweight">Apéndice A · Instalación de Docker y muestras <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

@@ -1,0 +1,50 @@
+@page "/docker/doc-marco-requerimientos"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Marco teórico · Requerimientos del sistema — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-marco-fundamentos" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Fundamentos de Docker</FluentAnchor>
+            <span class="doc-progress">7 / 23</span>
+            <FluentAnchor Href="/docker/doc-marco-diseno" Appearance="Appearance.Lightweight">Marco teórico · Diseño de la plataforma <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Marco teórico</h1>
+            <h2 class="doc-title">Requerimientos del sistema</h2>
+        </header>
+
+        <article class="doc-content">
+            <h3 class="doc-h3">Requerimientos Funcionales</h3>
+            <p class="doc-p">Los requerimientos funcionales describen lo que el sistema tiene que hacer, funcionalidades concretas y cómo responde a las acciones del usuario (Visure Solutions, s. f.).</p>
+            <p class="doc-p">Para la plataforma se han identificado estas funcionalidades:</p>
+            <p class="doc-p">• RF-001 - Gestión del ciclo de vida del contenedor: iniciar, detener, reiniciar, pausar, reanudar y eliminar contenedores con un solo clic.</p>
+            <p class="doc-p">• RF-002 - Monitoreo de contenedores: mostrar el estado de los contenedores (activos, detenidos) y el uso de CPU, memoria, red y almacenamiento, consultados al motor bajo demanda.</p>
+            <p class="doc-p">• RF-003 - Visualización de logs: ver los registros de cualquier contenedor bajo demanda.</p>
+            <p class="doc-p">• RF-004 - Gestión de imágenes: listar imágenes locales, descargar imágenes y eliminar imágenes.</p>
+            <p class="doc-p">• RF-005 - Gestión de volúmenes y redes: visualizar, crear y eliminar volúmenes y redes de Docker.</p>
+            <p class="doc-p">• RF-006 - Autenticación de usuario: registro e inicio de sesión seguro con credenciales.</p>
+            <p class="doc-p">• RF-007 - Control de acceso basado en roles (RBAC): sistema de permisos que diferencie roles y restrinja el acceso a funcionalidades.</p>
+            
+            <h3 class="doc-h3">Requerimientos No Funcionales</h3>
+            <p class="doc-p">Los no funcionales describen cómo se comporta el sistema en términos de calidad y experiencia:</p>
+            <p class="doc-p">• Seguridad: proteger los datos de los usuarios y el entorno de contenedores. Se requiere control de acceso estricto y HTTPS.</p>
+            <p class="doc-p">• Escalabilidad: soportar un número creciente de contenedores y usuarios concurrentes sin degradar el rendimiento.</p>
+            <p class="doc-p">• Usabilidad: interfaz intuitiva que simplifique operaciones que de otro modo requerirían experiencia con la CLI.</p>
+            <p class="doc-p">• Rendimiento: tiempos de carga rápidos y respuesta mínima en las acciones de gestión.</p>
+            <p class="doc-p">• Mantenibilidad: arquitectura modular y documentada para facilitar la corrección de errores y la evolución del sistema.</p>
+            <p class="doc-p">La seguridad va primero, comunicaciones HTTPS, control de acceso y aislamiento de contenedores (Kinsta, s. f.). La usabilidad justifica la GUI, que simplifica operaciones que, sin ella, dependen de la CLI (Docker Dashboard, s. f.).</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-marco-fundamentos" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Fundamentos de Docker</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-marco-diseno" Appearance="Appearance.Lightweight">Marco teórico · Diseño de la plataforma <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

@@ -1,0 +1,87 @@
+@page "/docker/doc-metodologia"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Metodología — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-marco-tendencias" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Retos, futuro y conclusión</FluentAnchor>
+            <span class="doc-progress">12 / 23</span>
+            <FluentAnchor Href="/docker/doc-analisis" Appearance="Appearance.Lightweight">Análisis funcional y técnico <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Metodología</h1>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">El proyecto sigue un enfoque iterativo e incremental, organizado en módulos funcionales. La elección encaja bien con el contexto, un trabajo individual, de 16 semanas, con un alcance que puede ajustarse a medida que avanza el desarrollo. En lugar de planificar todo de una sola vez al principio y arriesgarse a tener que rehacer trabajo, se va construyendo pieza por pieza, validando cada bloque antes de pasar al siguiente y dejando margen para reorganizar prioridades si aparecen problemas o se descubren simplificaciones por el camino.</p>
+            
+            <h2 class="doc-h2">Análisis de requerimientos</h2>
+            <p class="doc-p">El análisis de requerimientos parte de tres fuentes, la revisión del problema que motiva el proyecto, el examen de herramientas existentes (Portainer, Rancher, Docker Desktop) para identificar funcionalidades que se consideran ya estándar en este tipo de plataforma, y las propias especificaciones del proyecto para acotar el alcance.</p>
+            <p class="doc-p">De ahí salen los requisitos funcionales (gestión de contenedores, visualización de logs, autenticación de usuarios, control de acceso por roles) y los no funcionales (rendimiento aceptable bajo carga normal, seguridad de la API, multiplataforma para Windows y Linux).</p>
+            
+            <h2 class="doc-h2">Diseño de la arquitectura</h2>
+            <p class="doc-p">A partir de los requisitos se elabora el diseño de la arquitectura, siguiendo un esquema multicapa que es el patrón estándar en aplicaciones ASP.NET Core, presentación, lógica de negocio y acceso a datos separadas en capas distintas, lo que deja el código más fácil de mantener y de probar.</p>
+            <p class="doc-p">La presentación es el frontend Blazor Web App (render Server predominante y WebAssembly), con páginas Razor renderizadas en servidor y componentes WebAssembly en el navegador. La lógica de negocio vive en el backend ASP.NET Core, organizada en servicios que encapsulan las operaciones (gestión de contenedores, autenticación, autorización) y se exponen a través de controladores API. El acceso a datos se hace mediante Entity Framework Core, que aísla la base de datos del resto del código. Aparte está la integración con Docker, que, aunque no es una capa en sentido estricto sí es una pieza diferenciada, un servicio dedicado se encarga de hablar con el motor a través de Docker.DotNet.</p>
+            <p class="doc-p">La comunicación de la UI interactiva entre frontend y backend viaja por el circuito SignalR interno de Blazor (modo InteractiveServer). Entre backend y motor de Docker todo va por HTTP/REST sobre TCP, con TLS mutuo cuando el servidor lo requiere. La autenticación sigue el modelo mixto definido en el apartado de Backend, cookies de Identity para la sesión web (que se establece por HTTP en el inicio de sesión) y JWT para las llamadas a la API.</p>
+            <p class="doc-p">Como salida de esta fase quedan el diagrama de arquitectura, el modelo de datos entidad-relación, la especificación de los endpoints de la API y los flujos de autenticación y autorización.</p>
+            
+            <h2 class="doc-h2">Implementación iterativa</h2>
+            <p class="doc-p">El desarrollo no se aborda de una sola pieza, sino que se reparte en módulos funcionales que se van implementando de forma incremental. Cada módulo se diseña, se codifica, se prueba y se valida con el tutor antes de pasar al siguiente. Así se acumula trabajo entregable desde las primeras semanas y se deja margen para reorganizar prioridades si algo se complica o se descubre por el camino.</p>
+            <p class="doc-p">Los cinco módulos previstos son:</p>
+            <p class="doc-p">• Módulo 1: autenticación de usuarios y gestión de cuentas.</p>
+            <p class="doc-p">• Módulo 2: gestión básica de contenedores (CRUD).</p>
+            <p class="doc-p">• Módulo 3: monitoreo y visualización de logs (bajo demanda).</p>
+            <p class="doc-p">• Módulo 4 (opcional, segunda fase): imágenes, volúmenes y redes.</p>
+            <p class="doc-p">• Módulo 5: medidas de seguridad avanzadas y optimización final.</p>
+            <p class="doc-p">Sobre la pila tecnológica que se aplica en cada módulo, el backend se construye con ASP.NET Core 10.0 y Entity Framework Core 10.0, y habla con el motor de Docker a través de Docker.DotNet. El frontend se implementa con una Blazor Web App que combina modos de render interactivos, Server y WebAssembly, predominando el modo Server, con componentes de Microsoft Fluent UI. Toda la aplicación corre como un único proceso ASP.NET Core durante el desarrollo, sin contenedores separados para frontend y backend.</p>
+
+            <br />
+            <table class="doc-table">
+                <caption>Diagrama de Gantt del cronograma</caption>
+                <thead>
+                    <tr>
+                        <th>Fase</th>
+                        <th>Actividad</th>
+                        <th>Duración</th>
+                        <th>Módulos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>1</td><td>Análisis y requisitos</td><td>Sem 1-4</td><td>Todos</td></tr>
+                    <tr><td>2</td><td>Diseño arquitectura y BD</td><td>Sem 3-6</td><td>Todos</td></tr>
+                    <tr><td>3</td><td>Backend API REST</td><td>Sem 5-8</td><td>M1, M2, M3</td></tr>
+                    <tr><td>4</td><td>Frontend</td><td>Sem 7-10</td><td>M1, M2, M3</td></tr>
+                    <tr><td>5</td><td>Integración con Docker</td><td>Sem 9-12</td><td>M2, M3, M4</td></tr>
+                    <tr><td>6</td><td>Seguridad (JWT + RBAC)</td><td>Sem 11-14</td><td>M1, M5</td></tr>
+                    <tr><td>7</td><td>Pruebas y validación</td><td>Sem 13-16</td><td>Todos</td></tr>
+                    <tr><td>8</td><td>Preparación para el despliegue y optimización</td><td>Sem 15-16</td><td>M5</td></tr>
+                    <tr><td>9</td><td>Documentación y memoria</td><td>Sem 1-16</td><td>Todos</td></tr>
+                </tbody>
+            </table>
+
+            <h2 class="doc-h2">Pruebas</h2>
+            <p class="doc-p">La estrategia de pruebas se organiza en varios niveles, cada uno con un propósito distinto.</p>
+            <p class="doc-p">Las pruebas unitarias validan piezas pequeñas del código de forma aislada, validadores, mapeos, lógica de RBAC, generación de tokens JWT. Son rápidas, deterministas y se ejecutan en cada cambio.</p>
+            <p class="doc-p">Las pruebas de integración comprueban que el código habla bien con el motor de Docker y con la base de datos. Aquí no se simula nada, se lanzan contra un Docker Engine real y una base de datos de desarrollo, para que el resultado se parezca lo más posible a una ejecución real.</p>
+            <p class="doc-p">Las pruebas de usabilidad consisten en una evaluación informal con un grupo reducido de usuarios de pruebas, personas ajenas al desarrollo que usan la interfaz para resolver tareas típicas y dan feedback. El objetivo es verificar que la plataforma cumple su promesa de reducir la dependencia de la línea de comandos, que es uno de los objetivos planteados.</p>
+            <p class="doc-p">Las pruebas de seguridad son básicas, verifican que los mecanismos de autenticación y autorización funcionan como deben (rutas protegidas que rechazan accesos sin token, tokens caducados que se invalidan, roles que limitan operaciones). No es un pentesting formal, sino una verificación de los flujos de seguridad implementados.</p>
+            <p class="doc-p">El detalle de cómo se ejecutan las pruebas unitarias y de integración se describe en el apartado de Implementación.</p>
+            
+            <h2 class="doc-h2">Despliegue y Mantenimiento</h2>
+            <p class="doc-p">El despliegue real queda fuera del alcance del proyecto y se documenta como línea futura. Como parte de la metodología sí se contempla, en las dos últimas semanas del cronograma, la preparación del material necesario para hacer ese despliegue después sin demasiada fricción, el docker-compose.yml, un fichero de variables de entorno de ejemplo y una guía breve de configuración inicial. El detalle de la arquitectura prevista para producción y de las decisiones técnicas asociadas se desarrolla en el apartado de Implementación.</p>
+            <p class="doc-p">El mantenimiento operacional, entendido como la monitorización en producción, la corrección de incidencias y la evolución del sistema una vez desplegado, queda fuera del alcance por la misma razón que el despliegue del que depende. Lo que sí se contempla como parte del trabajo es dejar el código preparado para que ese mantenimiento futuro sea más cómodo, arquitectura por capas que separa responsabilidades, código documentado, pruebas que sirven como red de seguridad ante futuros cambios y dependencias gestionadas con NuGet. Sobre esa base, quien retome la plataforma más adelante puede hacerla evolucionar sin tener que entender cada decisión desde cero.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-marco-tendencias" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Retos, futuro y conclusión</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-analisis" Appearance="Appearance.Lightweight">Análisis funcional y técnico <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

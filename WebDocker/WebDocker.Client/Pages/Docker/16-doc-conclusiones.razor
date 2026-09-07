@@ -1,0 +1,56 @@
+@page "/docker/doc-conclusiones"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Conclusiones — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-resultados" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Resultados</FluentAnchor>
+            <span class="doc-progress">16 / 23</span>
+            <FluentAnchor Href="/docker/doc-referencias" Appearance="Appearance.Lightweight">Referencias <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Conclusiones</h1>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">Llegado el cierre del proyecto, este capítulo recoge el balance del trabajo realizado. Repaso lo que se planteó al inicio, lo que se ha entregado, lo que queda pendiente y lo que me llevo del proceso. La idea es no caer en la lista plana de logros, sino contar también lo que ha costado y lo que haría distinto si tuviera que empezar otra vez.</p>
+            
+            <h2 class="doc-h2">Recapitulación de los objetivos</h2>
+            <p class="doc-p">El anteproyecto fijó siete objetivos específicos, entender la arquitectura de Docker y su API REST, especificar los requisitos del sistema, diseñar una arquitectura en capas, implementar la plataforma web, incorporar autenticación y RBAC, evaluar el resultado en términos de usabilidad y reducción de dependencia de la línea de comandos, y garantizar el funcionamiento multiplataforma.</p>
+            <p class="doc-p">Los siete objetivos quedan cubiertos por el proyecto. WebDocker se ejecuta de forma nativa en Windows y en Linux (es una aplicación .NET multiplataforma) y gestiona hosts Docker remotos, probados sobre Linux. Su interfaz y su API REST cubren las operaciones de gestión más habituales que antes se hacían por línea de comandos, CRUD y ciclo de vida de contenedores, imágenes, volúmenes y redes.</p>
+            
+            <h2 class="doc-h2">Síntesis de los resultados</h2>
+            <p class="doc-p">Lo más visible del trabajo es la propia aplicación, una plataforma web en Blazor sobre .NET 10.0 que gestiona contenedores Docker en servidores remotos, con autenticación mixta (cookie en la web, JWT en la API), autorización por once permisos finos repartidos entre dos roles, y una interfaz que cubre el ciclo de vida completo de contenedores, imágenes, volúmenes y redes. Por debajo hay una treintena de endpoints REST organizados por recurso, una migración consolidada de Entity Framework Core. La validación funcional se hizo sobre todo a mano, contra un Docker Engine real.</p>
+            
+            <h2 class="doc-h2">Implicaciones y relevancia</h2>
+            <p class="doc-p">El valor del proyecto no está tanto en superar a herramientas consolidadas como Portainer, que llevan años en el mercado, sino en haber construido desde cero una plataforma análoga manteniendo el stack de desarrollo íntegramente en C#/.NET. Esto muestra que el ecosistema .NET, históricamente más asociado a entornos empresariales cerrados, encaja bien también en escenarios de gestión de infraestructura moderna. Para alguien que se mueve en este mundo, la plataforma resuelve un problema real: bajar la barrera de entrada a Docker para perfiles que no se manejan con soltura en la línea de comandos. Y para quien la quiere usar como base, queda un punto de partida sobre el que crecer sin depender de un proyecto externo. Dicho esto, el impacto real conviene situarlo en su justa medida, como prueba de concepto y ejercicio integrador el proyecto cumple con creces, pero su adopción en un entorno productivo real sigue condicionada a cerrar las limitaciones señaladas. Su valor inmediato es, por tanto, más formativo y como base extensible que como reemplazo directo de las herramientas ya existentes.</p>
+            
+            <h2 class="doc-h2">Reflexión sobre el proceso de desarrollo</h2>
+            <p class="doc-p">La parte que más fricción me ha dado no ha sido el código, sino las decisiones de diseño que aparecen una vez que ya hay algo funcionando. Cuando el primer prototipo del módulo de contenedores estaba en pie, me di cuenta de que el modelo de roles fijos que tenía planeado se iba a quedar corto en el momento que apareciera un caso de uso intermedio. Eso me llevó a rehacer la autorización con permisos finos, que era más trabajo, pero acaba siendo más limpio. Algo parecido pasó con la decisión de exponer la funcionalidad también como API REST, además de la sesión por cookies de la interfaz: en su momento parecía opcional, pero abre la puerta a que la misma lógica se pueda usar desde fuera del navegador, lo que cambia bastante el alcance del proyecto.</p>
+            <p class="doc-p">Como aspecto débil, debo reconocer que el modo en que organicé las primeras iteraciones fue demasiado optimista. Pensaba que con un sprint dedicado al frontend tendría todas las pantallas cerradas, y al final la integración de Fluent UI con las páginas Blazor y sus distintos modos de render consumió más tiempo del previsto. Para futuros proyectos en este stack, asumiría desde el inicio que combinar los modos de render de Blazor (Static SSR, InteractiveServer y WebAssembly) tiene aristas que solo aparecen cuando se mezclan componentes con estado y rutas autenticadas.</p>
+            
+            <h2 class="doc-h2">Cumplimiento de los requisitos y objetivos</h2>
+            <p class="doc-p">Los siete requisitos funcionales definidos en el marco teórico están cubiertos. RF-001 (ciclo de vida del contenedor), RF-004 (gestión de imágenes), RF-005 (volúmenes y redes), RF-006 (autenticación) y RF-007 (RBAC) se entregan completos. RF-003 (visualización de logs) se resuelve mediante una instantánea de las últimas líneas del contenedor, disponible en la interfaz y en la API; no hay streaming en tiempo real. RF-002 (monitorización de recursos) muestra el consumo de CPU y memoria de cada contenedor mediante muestras puntuales de docker stats, bajo demanda. En cuanto a los requisitos no funcionales, la seguridad cubre HTTPS, autenticación mixta (cookie + JWT), RBAC y validación de entrada; el lockout y el rate limiting quedan identificados como mejoras futuras. Usabilidad y mantenibilidad se han priorizado durante todo el desarrollo.</p>
+            
+            <h2 class="doc-h2">Lecciones aprendidas</h2>
+            <p class="doc-p">A nivel técnico, lo que más me llevo es la práctica con Blazor y sus modos de render. La parte de WebAssembly me ha obligado a entender a fondo el ciclo de vida de los componentes y la propagación del estado entre cliente y servidor.</p>
+            <p class="doc-p">También me ha resultado útil pelearme con Docker.DotNet de primera mano, entender cómo se construyen las llamadas a la API por debajo me ha cambiado la forma de pensar sobre cualquier herramienta que envuelva una API REST. A nivel más general, la lección que más me llevo es la de no subestimar las decisiones de diseño que parecen pequeñas al inicio.</p>
+            <p class="doc-p">La autorización por roles fijos frente a permisos finos sonaba a detalle irrelevante, y resulta que ha sido la decisión que más ha condicionado la arquitectura del backend.</p>
+            
+            <h2 class="doc-h2">Trabajo futuro</h2>
+            <p class="doc-p">Si hubiera que priorizar, el orden de estos frentes vendría dado por el valor que cada uno aporta de cara a un uso real. La continuación natural pasa por cuatro frentes. El primero es incorporar un conjunto de pruebas de extremo a extremo que recorran la interfaz de forma automática, para que la confianza no dependa de la validación manual. El segundo, llevar la plataforma a un despliegue real, un VPS con dominio propio y certificado SSL donde afinar la configuración de producción y rodar la imagen Docker fuera del entorno de desarrollo. El tercero es medir. La escalabilidad y el rendimiento se han cuidado en el diseño, pero hasta que no se someten a benchmarks con carga real son una promesa, no un dato. Y el cuarto, ya como línea más exploratoria, retomar el componente que el anteproyecto dejaba abierto, un dashboard de salud con detección de anomalías que aproveche la telemetría que Docker ya devuelve por defecto. De los cuatro, los dos primeros, las pruebas de extremo a extremo y el despliegue en un servidor real, son los que más acercan la herramienta a un escenario productivo y, por tanto, los que aportarían mayor valor inmediato, el dashboard de salud, aunque más vistoso, es el menos crítico y puede esperar.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-resultados" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Resultados</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-referencias" Appearance="Appearance.Lightweight">Referencias <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

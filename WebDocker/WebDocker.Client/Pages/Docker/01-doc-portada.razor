@@ -1,0 +1,36 @@
+@page "/docker/doc-portada"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Portada — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <span></span>
+            <span class="doc-progress">1 / 23</span>
+            <FluentAnchor Href="/docker/doc-resumen" Appearance="Appearance.Lightweight">Resumen <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Portada</h1>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">Plataforma Web para la Gestión de Contenedores Docker</p>
+            <p class="doc-p">Titulación: Grado en Ingeniería Informática</p>
+            <p class="doc-p">Curso académico 2025-2026</p>
+            <p class="doc-p">Alumno: Carlos Lugo Mirón</p>
+            <p class="doc-p">D.N.I: 43777920L</p>
+            <p class="doc-p">Director de TFG: Hector Simarro Moncholi</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <span></span>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-resumen" Appearance="Appearance.Lightweight">Resumen <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

@@ -1,0 +1,97 @@
+﻿
+fluent-accordion {
+	background-color: transparent !important;
+	border: none !important;
+}
+
+fluent-accordion-item {
+	background-color: transparent !important;
+	border: none !important;
+}
+
+/* Header del acordeón */
+fluent-accordion-item::part(heading) {
+	background: none !important;
+	/*color: #d7d7d7 !important;*/
+	border: none !important;
+	/*padding: 0.75rem 1rem !important;*/
+	/*height: 3rem !important;*/
+	display: flex;
+	/*align-items: center;*/
+	gap: 0.99rem;
+	/*font-size: 0.9rem;*/
+	/*border-radius: 4px;*/
+	cursor: pointer;
+	transition: background 0.2s ease;
+}
+
+	/* Hover */
+	fluent-accordion-item::part(heading):hover {
+		background-color: rgba(255,255,255,0.1) !important;
+		color: white !important;
+	}
+
+	fluent-accordion-item::part(icon) {
+		background: none !important;
+		color: white !important;
+		border:   solid thin !important;
+		padding: 0rem 0rem !important;
+		/*height: 3rem !important;*/
+		display: flex;
+		align-items: center;
+		gap: 0rem;
+		/*font-size: 0.9rem;*/
+		/*border-radius: 4px;*/
+		cursor: pointer;
+		transition: background 0.2s ease;
+	}
+
+/* Expandido = estilo “activo” */
+fluent-accordion-item[expanded]::part(heading) {
+	background-color: rgba(255,255,255,0.37) !important;
+	color: white !important;
+}
+
+/* Iconos */
+.accordion-text {
+	flex-grow: 1;
+}
+
+fluent-accordion-item span.bi {
+	display: inline-block;
+	position: relative;
+	width: 1.25rem;
+	height: 1.25rem;
+	margin-right: 0.5rem;
+	top: -1px;
+	background-size: cover !important;
+}
+
+/* Panel desplegado */
+fluent-accordion-item::part(region) {
+	background: none !important;
+	/*padding: 0.25rem 1.5rem !important;*/
+	/*margin-left: 1rem !important;*/
+	/*border-left: 1px solid rgba(255, 255, 255, 0.1) !important;*/
+	color: #d7d7d7;
+}
+
+	/* Enlaces dentro del panel del acordeón */
+	fluent-accordion-item::part(region) a {
+		display: block;
+		padding: 0.4rem 0 !important;
+		color: #d7d7d7;
+		border-radius: 4px;
+	}
+
+		/* Hover en enlaces del panel */
+		fluent-accordion-item::part(region) a:hover {
+			background-color: rgba(255,255,255,0.1);
+			color: white;
+		}
+
+		/* Activo */
+		fluent-accordion-item::part(region) a.active {
+			background-color: rgba(255,255,255,0.37);
+			color: white;
+		}

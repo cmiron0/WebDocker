@@ -1,0 +1,248 @@
+@page "/docker/doc-apendice-docker"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Apéndice A · Instalación de Docker y muestras — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-apendice-wsl" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · WSL en Windows 11</FluentAnchor>
+            <span class="doc-progress">21 / 23</span>
+            <FluentAnchor Href="/docker/doc-apendice-resumen" Appearance="Appearance.Lightweight">Apéndice A · Resumen comparativo de comandos <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Apéndice A</h1>
+            <h2 class="doc-title">Instalación de Docker</h2>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">Docker empaqueta y ejecuta aplicaciones en contenedores ligeros. Aquí van los pasos para instalarlo en cada entorno.</p>
+           
+            <h3 class="doc-h3">Docker en Ubuntu 22.04 sobre Hyper-V</h3>
+            <p class="doc-p">En la VM Ubuntu de Hyper-V, abrir un terminal y ejecutar:</p>
+            
+            <h3 class="doc-h3">Preparar el Sistema</h3>
+            <pre class="doc-console">sudo apt update</pre>
+            <pre class="doc-console">sudo apt install -y ca-certificates curl gnupg lsb-release</pre>
+
+            <h3 class="doc-h3">Añadir la clave GPG oficial de Docker</h3>
+            <pre class="doc-console">sudo install -m 0755 -d /etc/apt/keyrings</pre>
+            <pre class="doc-console">curl -fsSL https://download.docker.com/linux/ubuntu/gpg  | \ <br/> sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg</pre>
+            <pre class="doc-console">sudo chmod a+r /etc/apt/keyrings/docker.gpg</pre>
+
+            <h3 class="doc-h3">Configurar el repositorio de Docker</h3>
+            <pre class="doc-console">echo "deb [arch=$(dpkg --print-architecture) \ <br /> signed-by=/etc/apt/keyrings/docker.gpg] \ <br /> https://download.docker.com/linux/ubuntu \ <br /> $(lsb_release -cs) stable" | \ <br /> sudo tee /etc/apt/sources.list.d/docker.list &gt; /dev/null</pre>
+            
+             <h3 class="doc-h3">Instalar Docker Engine</h3>
+            <pre class="doc-console">sudo apt update</pre>
+            <pre class="doc-console">sudo apt install -y docker-ce docker-ce-cli \ <br /> containerd.io docker-buildx-plugin docker-compose-plugin</pre>
+
+            <h3 class="doc-h3">Configurar Docker para uso sin sudo</h3>
+            <pre class="doc-console">sudo usermod -aG docker $USER</pre>
+            <pre class="doc-console">newgrp Docker</pre>
+            <p class="doc-nota"><strong>Nota:</strong> Es necesario cerrar la sesión y volver a iniciarla para que el cambio de grupo tenga efecto permanente.</p>
+            
+            <h3 class="doc-h3">Verificar la instalación</h3>
+            <pre class="doc-console">docker --version</pre>
+            <pre class="doc-console">docker run hello-world</pre>
+            <p class="doc-p">Si aparece "Hello from Docker!", todo funciona.</p>
+            
+            <h3 class="doc-h3">Reaplicar todo desde cero (solución completa)</h3>
+            <h3 class="doc-h3">Escribir daemon.json correcto</h3>
+            <pre class="doc-console">sudo tee /etc/docker/daemon.json &lt;&lt;'EOF' <br /> { <br /> "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2375"] <br /> } <br /> EOF</pre>
+            
+             <h3 class="doc-h3">Crear el override de system</h3>
+            <pre class="doc-console">sudo mkdir -p /etc/systemd/system/docker.service.d</pre>
+            <pre class="doc-console">sudo tee /etc/systemd/system/docker.service.d/override.conf &lt;&lt;'EOF' <br /> [Service] <br /> ExecStart= <br /> ExecStart=/usr/bin/dockerd <br /> EOF</pre>
+
+            <h3 class="doc-h3">Recargar systemd y reiniciar Docker</h3>
+            <pre class="doc-console">sudo systemctl daemon-reload</pre>
+            <pre class="doc-console">sudo systemctl restart docker</pre>
+
+            <h3 class="doc-h3">Comprobar que arranca bien</h3>
+            <pre class="doc-console">sudo systemctl status docker</pre>
+            
+            <h3 class="doc-h3">Verificar que escucha en 2375</h3>
+            <pre class="doc-console">ss -tlnp | grep 2375</pre>
+            
+            <h3 class="doc-h3">Prueba final</h3>
+            <pre class="doc-console">curl <a href="http://localhost:2375/version" target="_blank" rel="noopener" class="doc-link">http://localhost:2375/version</a></pre>
+            
+            <h3 class="doc-h3">Docker en Ubuntu 22.04 sobre WSL</h3>
+            <p class="doc-p">Instalar Docker en WSL es igual que en una VM, porque WSL 2 ejecuta un kernel Linux real. Desde el terminal de Ubuntu en WSL:</p>
+            
+            <h3 class="doc-h3">Instalar Docker Engine (mismos pasos)</h3>
+            <p class="doc-p">Ejecutar exactamente los mismos comandos descritos en las secciones de instalación del Docker Engine. El procedimiento es idéntico.</p>
+            
+            <h3 class="doc-h3">Configurar el inicio automático del servicio Docker</h3>
+            <p class="doc-p">En WSL los servicios no arrancan solos como en una VM. Para iniciar Docker a mano:</p>
+            <pre class="doc-console">sudo service docker start</pre>
+            <p class="doc-p">Para que Docker se inicie automáticamente al abrir WSL, añadir la siguiente línea al archivo ~/.bashrc o ~/.profile:</p>
+            <pre class="doc-console"># Añadir al final de ~/.bashrc <br /> if service docker status 2&gt;&amp;1 | grep -q "is not running"; then <br /> sudo service docker start &gt; /dev/null 2&gt;&amp;1 <br /> fi</pre>
+            <p class="doc-p">Para evitar que solicite contraseña, configurar sudoers:</p>
+            <pre class="doc-console">sudo visudo <br /> # Añadir al final del archivo: <br /> %docker ALL=(ALL) NOPASSWD: /usr/sbin/service docker *</pre>
+            
+            <h3 class="doc-h3">Docker Desktop en Windows 11 (alternativa integrada)</h3>
+            <p class="doc-p">Otra opción es Docker Desktop para Windows, que se integra con WSL y Hyper-V sin configuración extra.</p>
+            
+            <h3 class="doc-h3">Descargar e instalar</h3>
+            <p class="doc-p">• Acceder a https://www.docker.com/products/docker-desktop/ y descargar el instalador para Windows.</p>
+            <p class="doc-p">• Ejecutar el instalador y seguir el asistente. En las opciones de configuración, asegurarse de marcar "Use WSL 2 instead of Hyper-V" si se va a usar con WSL.</p>
+            <p class="doc-p">• Reiniciar el equipo si se solicita.</p>
+            <p class="doc-p">• Iniciar Docker Desktop desde el menú Inicio.</p>
+            
+            <h3 class="doc-h3">Integración con WSL</h3>
+            <p class="doc-p">Docker Desktop detecta las distribuciones WSL instaladas:</p>
+            <p class="doc-p">• Abrir Docker Desktop &gt; Settings &gt; Resources &gt; WSL Integration.</p>
+            <p class="doc-p">• Activar la integración con la distribución Ubuntu-22.04.</p>
+            <p class="doc-p">• Hacer clic en "Apply &amp; Restart".</p>
+            <p class="doc-p">• Abrir el terminal de Ubuntu en WSL y verificar: docker –version</p>
+            <p class="doc-nota"><strong>Nota:</strong> Con Docker Desktop, no es necesario instalar Docker Engine directamente en WSL. Docker Desktop gestiona el daemon de forma centralizada.</p>
+            
+            <h3 class="doc-h3">Integración con Hyper-V</h3>
+            <p class="doc-p">Docker Desktop también puede usar Hyper-V en vez de WSL 2. Se elige durante la instalación o en Settings &gt; General.</p>
+            <p class="doc-nota"><strong>Importante:</strong> No se puede usar Docker Desktop con backend Hyper-V y WSL 2 simultáneamente. Es necesario elegir uno de los dos.</p>
+            
+            <p class="doc-h2">Crear una máquina Docker de muestra en cada entorno</p>
+            <p class="doc-p">Con Docker instalado, lo mejor es probarlo creando un contenedor. Aquí se muestra cómo montar un Nginx de ejemplo en cada entorno.</p>
+            
+            <h3 class="doc-h3">Contenedor de muestra en Ubuntu 22.04 sobre Hyper-V</h3>
+            <p class="doc-p">Desde la terminal de Ubuntu en Hyper-V:</p>
+            
+            <h3 class="doc-h3">Descargar la imagen de Nginx</h3>
+            <pre class="doc-console">sudo docker pull nginx:latest</pre>
+            
+            <h3 class="doc-h3">Crear y ejecutar el contenedor</h3>
+            <pre class="doc-console">sudo docker run -d --name nginx-demo -p 8080:80 nginx:latest</pre>
+            <p class="doc-p">Explicación de los parámetros:</p>
+            <p class="doc-p">• -d: Ejecuta el contenedor en segundo plano (modo detached).</p>
+            <p class="doc-p">• --name nginx-demo: Asigna el nombre "nginx-demo"" al contenedor.</p>
+            <p class="doc-p">• -p 8080:80: Mapea el puerto 8080 del host al puerto 80 del contenedor.</p>
+            <p class="doc-p">• nginx:latest: Imagen oficial de Nginx en su última versión.</p>
+            
+            <h3 class="doc-h3">Verificar que el contenedor está en ejecución</h3>
+            <pre class="doc-console">sudo docker ps</pre>
+            <p class="doc-p">Debe aparecer el contenedor "nginx-demo" con estado "Up". Para probar, abrir un navegador en la VM y acceder a "http://localhost:8080". Debería mostrar la página de bienvenida de Nginx.</p>
+            
+            <h3 class="doc-h3">Operaciones básicas del contenedor</h3>
+            <p class="doc-p">Detener el contenedor:</p>
+            <pre class="doc-console">sudo docker stop nginx-demo</pre>
+            <p class="doc-p">Reiniciar el contenedor:</p>
+            <pre class="doc-console">sudo docker start nginx-demo</pre>
+            <p class="doc-p">Ver los logs del contenedor:</p>
+            <pre class="doc-console">sudo docker logs nginx-demo</pre>
+            <p class="doc-p">Eliminar el contenedor (debe estar detenido primero):</p>
+            <pre class="doc-console">sudo docker stop nginx-demo</pre>
+            <pre class="doc-console">sudo docker rm nginx-demo</pre>
+
+            <h3 class="doc-h3">Acceder al interior del contenedor</h3>
+            <pre class="doc-console">sudo docker exec -it nginx-demo /bin/bash</pre>
+            <p class="doc-p">Esto abre una sesión interactiva dentro del contenedor. Para salir, escribir exit.</p>
+            
+            <h3 class="doc-h3">Contenedor de muestra en Ubuntu 22.04 sobre WSL</h3>
+            <p class="doc-p">En WSL el procedimiento es el mismo que en Hyper-V, Docker funciona igual en ambos. Abrir Windows Terminal o la app Ubuntu y ejecutar:</p>
+            
+            <h3 class="doc-h3">Verificar que Docker está activo en WSL</h3>
+            <pre class="doc-console">sudo service docker status</pre>
+            <p class="doc-p">Si no está activo, iniciarlo con:</p>
+            <pre class="doc-console">sudo service docker start</pre>
+            
+            <h3 class="doc-h3">Descargar la imagen y crear el contenedor</h3>
+            <pre class="doc-console">sudo docker pull nginx:latest</pre>
+            <pre class="doc-console">sudo docker run -d --name nginx-wsl -p 8081:80 nginx:latest</pre>
+            <p class="doc-nota"><strong>Nota:</strong> Se utiliza el puerto 8081 para evitar conflictos si ya hay otro servicio en el 8080. En WSL, los puertos se comparten con Windows, por lo que se puede acceder directamente desde el navegador de Windows en http://localhost:8081.</p>
+            
+            <h3 class="doc-h3">Verificar y gestionar el contenedor</h3>
+            <pre class="doc-console">sudo docker ps # Listar contenedores activos</pre>
+            <pre class="doc-console">sudo docker inspect nginx-wsl # Ver detalles del contenedor</pre>
+            <pre class="doc-console">sudo docker stop nginx-wsl # Detener</pre>
+            <pre class="doc-console">sudo docker start nginx-wsl # Reiniciar</pre>
+            <pre class="doc-console">sudo docker rm nginx-wsl # Eliminar (detenido)</pre>
+
+            <h3 class="doc-h3">Crear un contenedor con volumen persistente</h3>
+            <p class="doc-p">Para mantener datos entre reinicios, se puede montar un volumen local:</p>
+            <pre class="doc-console">mkdir -p ~/docker-data/nginx</pre>
+            <pre class="doc-console">sudo docker run -d --name nginx -persist -p 8082:80 <br /> -v ~/docker-data/nginx:/usr/share/nginx/html nginx:latest</pre>
+            <p class="doc-p">Ahora se pueden colocar archivos HTML en ~/docker-data/nginx y se servirán automáticamente a través del contenedor.</p>
+            
+            <h3 class="doc-h3">Contenedor de muestra en Docker Desktop (Windows 11)</h3>
+            <p class="doc-p">Docker Desktop se puede usar por línea de comandos o con su interfaz gráfica. Ambos métodos:</p>
+            
+            <h3 class="doc-h3">Método A: Desde PowerShell o CMD</h3>
+            <p class="doc-p">Abrir PowerShell o el Símbolo del sistema y ejecutar (sin sudo, ya que Docker Desktop se ejecuta como servicio en Windows):</p>
+            <pre class="doc-console">docker pull nginx:latest</pre>
+            <pre class="doc-console">docker run -d --name nginx-windows -p 8083:80 nginx:latest</pre>
+            <p class="doc-p">Verificar en el navegador accediendo a http://localhost:8083.</p>
+            
+            <h3 class="doc-h3">Método B: Desde la interfaz gráfica de Docker Desktop</h3>
+            <p class="doc-p">• Abrir Docker Desktop desde el menú Inicio o la bandeja del sistema.</p>
+            <p class="doc-p">• Ir a la pestaña Images en el panel lateral izquierdo.</p>
+            <p class="doc-p">• Buscar "nginx" en la barra de búsqueda superior y pulsar Pull para descargar la imagen.</p>
+            <p class="doc-p">• Una vez descargada, hacer clic en el botón Run junto a la imagen nginx.</p>
+            <p class="doc-p">• En el diálogo de configuración, expandir Optional settings y configurar:</p>
+            <p class="doc-p doc-sangria">a. Container name: nginx-desktop</p>
+            <p class="doc-p doc-sangria">b. Host port: 8084</p>
+            <p class="doc-p">• Hacer clic en Run. El contenedor aparecerá en la pestaña Containers.</p>
+            <p class="doc-p">• Desde Containers se puede detener, reiniciar, eliminar o ver los logs del contenedor usando los botones de la interfaz.</p>
+            
+            <h3 class="doc-h3">Gestión de contenedores en Docker Desktop</h3>
+            <p class="doc-p">Operaciones disponibles en la pestaña Containers de Docker Desktop:</p>
+
+            <br />
+            <table class="doc-table">
+                <caption>Operaciones disponibles en Docker Desktop</caption>
+                <thead>
+                    <tr>
+                        <th>Acción</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Start / Stop</td><td>Inicia o detener el contenedor con un solo clic.</td></tr>
+                    <tr><td>Restart</td><td>Reiniciar el contenedor preservando su configuración.</td></tr>
+                    <tr><td>Logs</td><td>Ver la salida de logs (últimas líneas) del contenedor.</td></tr>
+                    <tr><td>Inspect</td><td>Ver variables de entorno, puertos, volúmenes y red del contenedor.</td></tr>
+                    <tr><td>Terminal</td><td>Abrir una terminal interactiva dentro del contenedor (equivalente a <code>docker exec -it</code>).</td></tr>
+                    <tr><td>Delete</td><td>Eliminar el contenedor de forma permanente.</td></tr>
+                </tbody>
+            </table>
+            
+            <h3 class="doc-h3">Resumen de comandos Docker comunes</h3>
+            <p class="doc-p">Comandos Docker más usados:</p>
+
+            <br />
+            <table class="doc-table">
+                <caption>Comandos Docker más usados</caption>
+                <thead>
+                    <tr>
+                        <th>Comando</th>
+                        <th>Función</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td><code>docker pull [imagen]</code></td><td>Descargar una imagen del registro (Docker Hub)</td></tr>
+                    <tr><td><code>docker run -d --name [n] -p [h]:[c] [img]</code></td><td>Crear y ejecutar un contenedor en segundo plano</td></tr>
+                    <tr><td><code>docker ps / docker ps -a</code></td><td>Listar contenedores activos / todos</td></tr>
+                    <tr><td><code>docker stop [nombre]</code></td><td>Detener un contenedor en ejecución</td></tr>
+                    <tr><td><code>docker start [nombre]</code></td><td>Iniciar un contenedor detenido</td></tr>
+                    <tr><td><code>docker rm [nombre]</code></td><td>Eliminar un contenedor detenido</td></tr>
+                    <tr><td><code>docker logs [nombre]</code></td><td>Ver la salida de logs del contenedor</td></tr>
+                    <tr><td><code>docker exec -it [nombre] /bin/bash</code></td><td>Acceder a la terminal interactiva del contenedor</td></tr>
+                    <tr><td><code>docker inspect [nombre]</code></td><td>Ver detalles completos de configuración del contenedor</td></tr>
+                    <tr><td><code>docker images</code></td><td>Listar todas las imágenes descargadas</td></tr>
+                </tbody>
+            </table>
+
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-apendice-wsl" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · WSL en Windows 11</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-apendice-resumen" Appearance="Appearance.Lightweight">Apéndice A · Resumen comparativo de comandos <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

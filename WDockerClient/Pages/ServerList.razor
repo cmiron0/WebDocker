@@ -1,0 +1,110 @@
+@page "/serverlist"
+
+@inject ApiService Api
+@inject NavigationManager Navigation
+
+<PageTitle>Servidores — WDockerClient</PageTitle>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h4 mb-0">Servidores</h1>
+            <small class="text-muted">@Api.UserName</small>
+        </div>
+        <button class="btn btn-outline-secondary" @onclick="Logout">Cerrar sesión</button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-success" role="status" aria-hidden="true"></div>
+        </div>
+        <br />
+        <div class="d-flex justify-content-center">
+            <span class="sr-only text-success">Cargando servidores....</span>
+        </div>
+    }
+    else if (error is not null)
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    else if (servers.Count == 0)
+    {
+        <p class="text-muted">No tienes servidores registrados.</p>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Host</th>
+                        <th>Sistema</th>
+                        <th>TLS</th>
+                        <th>Añadido</th>
+                        <th class="text-end">Acceder</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var server in servers)
+                    {
+                        <tr>
+                            <td>@server.Name</td>
+                            <td>@server.Host:@server.Port</td>
+                            <td>@server.OperatingSystem</td>
+                            <td>@(server.UseTls ? "Sí" : "No")</td>
+                            <td>@server.CreatedAt.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-primary" title="Abrir servidor"
+                                        @onclick="() => OpenServer(server.Id)">
+                                    <i class="bi bi-box-arrow-in-right"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private List<WDCDockerServer> servers = new();
+    private bool isLoading = true;
+    private string? error;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Api.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                servers = await Api.GetServers();
+            }
+            catch
+            {
+                error = "No se pudieron cargar los servidores.";
+            }
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private void OpenServer(int id) => Navigation.NavigateTo($"/serverdetail/{id}");
+
+    private void Logout()
+    {
+        Api.Logout();
+        Navigation.NavigateTo("/");
+    }
+}

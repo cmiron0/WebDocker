@@ -1,0 +1,32 @@
+# For more info on HTTP files go to https://aka.ms/vs/httpfile
+
+@host = https://localhost:7210
+
+# @name login
+POST {{host}}/api/auth/login
+Content-Type: application/json
+
+{
+  "userName": "Admin",
+  "password": "Admin"
+}
+
+###
+
+# @name me
+GET {{host}}/api/auth/me
+Authorization: Bearer {{login.response.body.$.token}}
+
+
+###
+
+# @name refresh
+POST {{host}}/api/auth/refresh
+Content-Type: application/json
+
+{
+  "RefreshToken": "{{login.response.body.$.refreshToken}}"
+}
+
+###
+

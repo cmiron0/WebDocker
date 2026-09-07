@@ -1,0 +1,103 @@
+@page "/docker/doc-indice"
+@using System.Text.Json
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Índice — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <span></span>
+            @* <span class="doc-progress">1 / 23</span> *@
+            @* <FluentAnchor Href="/docker/doc-resumen" Appearance="Appearance.Lightweight">Resumen <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor> *@
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Índice de contenidos</h1>
+        </header>
+
+        <article class="doc-content">
+            <ul class="indice-lista">
+
+                @{
+                    string? parte = null;
+                }
+                @foreach (var e in Entradas)
+                {
+                    if (e.Parte != parte)
+                    {
+                        parte = e.Parte;
+                        if (parte is not null)
+                        {
+                            <li class="indice-parte">@parte</li>
+                        }
+                    }
+
+                    <li class="indice-item @(e.Parte is null ? null : "indice-sub")">
+                        <a href="@e.Href">
+                            <span class="indice-num">@e.Num</span>
+                            <span class="indice-titulo">@e.Titulo</span>
+                        </a>
+                    </li>
+                }
+
+            </ul>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <span></span>
+            @* <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor> *@
+            @* <FluentAnchor Href="/docker/doc-resumen" Appearance="Appearance.Lightweight">Resumen <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor> *@
+        </div>
+
+    </FluentCard>
+</div>
+
+
+@code {
+    private class Entrada
+    {
+        public string Href { get; set; } = "";
+        public string Num { get; set; } = "";
+        public string Titulo { get; set; } = "";
+        public string? Parte { get; set; }
+    }
+
+    private const string IndiceJson = """
+    [
+      { "href": "/docker/doc-portada",              "num": "1",  "titulo": "Portada" },
+      { "href": "/docker/doc-resumen",              "num": "2",  "titulo": "Resumen" },
+      { "href": "/docker/doc-abstract",             "num": "3",  "titulo": "Abstract" },
+      { "href": "/docker/doc-introduccion",         "num": "4",  "titulo": "Introducción" },
+      { "href": "/docker/doc-objetivos",            "num": "5",  "titulo": "Objetivos" },
+
+      { "href": "/docker/doc-marco-fundamentos",    "num": "6",  "titulo": "Fundamentos de Docker",           "parte": "Marco teórico" },
+      { "href": "/docker/doc-marco-requerimientos", "num": "7",  "titulo": "Requerimientos del sistema",      "parte": "Marco teórico" },
+      { "href": "/docker/doc-marco-diseno",         "num": "8",  "titulo": "Diseño de la plataforma",         "parte": "Marco teórico" },
+      { "href": "/docker/doc-marco-implementacion", "num": "9",  "titulo": "Implementación",                  "parte": "Marco teórico" },
+      { "href": "/docker/doc-marco-pruebas",        "num": "10", "titulo": "Pruebas, despliegue y seguridad", "parte": "Marco teórico" },
+      { "href": "/docker/doc-marco-tendencias",     "num": "11", "titulo": "Retos, futuro y conclusión",      "parte": "Marco teórico" },
+
+      { "href": "/docker/doc-metodologia",          "num": "12", "titulo": "Metodología" },
+      { "href": "/docker/doc-analisis",             "num": "13", "titulo": "Análisis funcional y técnico" },
+      { "href": "/docker/doc-desarrollo",           "num": "14", "titulo": "Desarrollo" },
+      { "href": "/docker/doc-resultados",           "num": "15", "titulo": "Resultados" },
+      { "href": "/docker/doc-conclusiones",         "num": "16", "titulo": "Conclusiones" },
+      { "href": "/docker/doc-referencias",          "num": "17", "titulo": "Referencias" },
+
+      { "href": "/docker/doc-apendice-hyperv",      "num": "18", "titulo": "Instalación de Hyper-V",           "parte": "Apéndices" },
+      { "href": "/docker/doc-apendice-ubuntu",      "num": "19", "titulo": "Ubuntu 22.04 en Hyper-V",          "parte": "Apéndices" },
+      { "href": "/docker/doc-apendice-wsl",         "num": "20", "titulo": "WSL en Windows 11",                "parte": "Apéndices" },
+      { "href": "/docker/doc-apendice-docker",      "num": "21", "titulo": "Instalación de Docker y muestras", "parte": "Apéndices" },
+      { "href": "/docker/doc-apendice-resumen",     "num": "22", "titulo": "Resumen comparativo de comandos",  "parte": "Apéndices" },
+      { "href": "/docker/doc-apendice-tls",         "num": "23", "titulo": "Certificados TLS de Docker",       "parte": "Apéndices" }
+    ]
+    """;
+
+    private static readonly Entrada[] Entradas =
+        JsonSerializer.Deserialize<Entrada[]>(
+            IndiceJson,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true })!;
+}

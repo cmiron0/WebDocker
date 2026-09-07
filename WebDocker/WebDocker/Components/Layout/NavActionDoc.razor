@@ -1,0 +1,81 @@
+﻿@using Microsoft.FluentUI.AspNetCore.Components
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+
+<style>
+    .doc-nav .fluent-nav-menu {
+        --neutral-foreground-rest: #ffffff;
+        --neutral-foreground-hover: #ffffff;
+        --neutral-fill-stealth-rest: transparent;
+        --neutral-fill-stealth-hover: transparent;
+    }
+
+    .doc-nav .fluent-nav-menu a:hover,
+    .doc-nav .fluent-nav-menu .fluent-nav-group-title:hover {
+        background: rgba(255, 255, 255, 0.12) !important;
+    }
+    .doc-nav .fluent-nav-menu a.active {
+        background: rgba(255, 255, 255, 0.18) !important;
+    } 
+
+/*     .doc-nav {
+        margin-left: -8px;
+    } */
+
+
+</style>
+
+
+<div class="doc-nav">
+    <FluentDesignSystemProvider BaseLayerLuminance="0.15f"
+                                Style="background: transparent;">
+        <FluentStack Orientation="Orientation.Horizontal">
+            <FluentNavMenu Width="250" Collapsible="false">
+
+                <FluentNavGroup Title="Documento"
+                                Tooltip="Capítulos del documento"
+                                Icon="@(new Icons.Regular.Size20.DocumentText())" IconColor="Color.Custom" CustomColor="#ffffff">
+
+                    <FluentNavLink Href="/docker/doc-portada" Match="NavLinkMatch.All" Tooltip="Portada">Portada</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-resumen" Match="NavLinkMatch.All" Tooltip="Resumen">Resumen</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-abstract" Match="NavLinkMatch.All" Tooltip="Abstract">Abstract</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-introduccion" Match="NavLinkMatch.All" Tooltip="Introducción">Introducción</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-objetivos" Match="NavLinkMatch.All" Tooltip="Objetivos">Objetivos</FluentNavLink>
+
+                    <FluentNavGroup Title="Marco teórico"
+                                    Tooltip="Marco teórico"
+                                    Icon="@(new Icons.Regular.Size20.BookOpen())" IconColor="Color.Custom" CustomColor="#ffffff">
+                        <FluentNavLink Href="/docker/doc-marco-fundamentos" Match="NavLinkMatch.All" Tooltip="Fundamentos de Docker">Docker</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-marco-requerimientos" Match="NavLinkMatch.All" Tooltip="Requerimientos del sistema">Requerimientos</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-marco-diseno" Match="NavLinkMatch.All" Tooltip="Diseño de la plataforma">Diseño</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-marco-implementacion" Match="NavLinkMatch.All" Tooltip="Implementación">Implementación</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-marco-pruebas" Match="NavLinkMatch.All" Tooltip="Pruebas, despliegue y seguridad">Pruebas</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-marco-tendencias" Match="NavLinkMatch.All" Tooltip="Retos, futuro y conclusión">Conclusión</FluentNavLink>
+                    </FluentNavGroup>
+
+                    <FluentNavLink Href="/docker/doc-metodologia" Match="NavLinkMatch.All" Tooltip="Metodología">Metodología</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-analisis" Match="NavLinkMatch.All" Tooltip="Análisis funcional y técnico">Análisis funcional</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-desarrollo" Match="NavLinkMatch.All" Tooltip="Desarrollo">Desarrollo</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-resultados" Match="NavLinkMatch.All" Tooltip="Resultados">Resultados</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-conclusiones" Match="NavLinkMatch.All" Tooltip="Conclusiones">Conclusiones</FluentNavLink>
+                    <FluentNavLink Href="/docker/doc-referencias" Match="NavLinkMatch.All" Tooltip="Referencias">Referencias</FluentNavLink>
+
+                    <FluentNavGroup Title="Apéndices"
+                                    Tooltip="Apéndices"
+                                    Icon="@(new Icons.Regular.Size20.AppsAddIn())" IconColor="Color.Custom" CustomColor="#ffffff">
+                        <FluentNavLink Href="/docker/doc-apendice-hyperv" Match="NavLinkMatch.All" Tooltip="Instalación de Hyper-V">Hyper-V</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-apendice-ubuntu" Match="NavLinkMatch.All" Tooltip="Ubuntu 22.04 en Hyper-V">Ubuntu 22.04</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-apendice-wsl" Match="NavLinkMatch.All" Tooltip="WSL en Windows 11">WSL Win 11</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-apendice-docker" Match="NavLinkMatch.All" Tooltip="Instalación de Docker y muestras">Ins. Docker</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-apendice-resumen" Match="NavLinkMatch.All" Tooltip="Resumen comparativo de comandos">Comandos</FluentNavLink>
+                        <FluentNavLink Href="/docker/doc-apendice-tls" Match="NavLinkMatch.All" Tooltip="Certificados TLS de Docker">Certificados TLS</FluentNavLink>
+                    </FluentNavGroup>
+
+                </FluentNavGroup>
+
+            </FluentNavMenu>
+        </FluentStack>
+    </FluentDesignSystemProvider>
+</div>
+
+@code {
+}

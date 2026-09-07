@@ -1,0 +1,4 @@
+{
+    "appService.defaultWebAppToDeploy": "/subscriptions/0e5dcf17-89dc-445e-823f-3d611ffa96fe/resourceGroups/WebDocker_group/providers/Microsoft.Web/sites/WebDocker",
+    "appService.deploySubpath": "publish\\WebDocker"
+}

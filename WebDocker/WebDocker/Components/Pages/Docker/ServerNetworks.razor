@@ -1,0 +1,206 @@
+@page "/docker/server/networks/{ServerId:int}"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+
+@using global::Docker.DotNet.Models
+@using WebDocker.Data
+@using WebDocker.Services
+
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+@inject ServerService ServerService
+@inject DockerService DockerService
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IToastService ToastService
+@inject IDialogService DialogService
+
+<PageTitle>Redes - @(server?.Name ?? "Servidor")</PageTitle>
+
+<div class="container-fluid px-4 py-3">
+
+
+    <!-- Botón Volver -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    <div class="mb-3">
+        <FluentButton Appearance="Appearance.Stealth" OnClick="@GoBack">
+            <FluentIcon Value="@(new Icons.Regular.Size20.ArrowLeft())" Slot="start" />
+            Volver al Servidor
+        </FluentButton>
+    </div>
+
+
+    <!-- Redes -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (isLoading)
+    {
+        <FluentProgressRing />
+    }
+    else if (server == null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">
+            Servidor no encontrado o sin permisos.
+        </FluentMessageBar>
+    }
+    else
+    {
+        <h2>Redes de @server.Name</h2>
+
+        <div class="d-flex gap-2 my-3">
+            <FluentTextField @bind-Value="newNetworkName" Placeholder="nombre de la red" />
+            <FluentSelect TOption="string" @bind-Value="newNetworkDriver">
+                <FluentOption Value="bridge">bridge</FluentOption>
+                <FluentOption Value="host">host</FluentOption>
+                <FluentOption Value="overlay">overlay</FluentOption>
+            </FluentSelect>
+            <FluentButton Appearance="Appearance.Accent" OnClick="@CreateNetwork" Disabled="@(isCreating || !_canWrite)">
+                @(isCreating ? "Creando..." : "Crear red")
+            </FluentButton>
+        </div>
+
+        @if (networks.Count == 0)
+        {
+            <FluentMessageBar Intent="MessageIntent.Info">No hay redes.</FluentMessageBar>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Driver</th>
+                        <th>Scope</th>
+                        <th>ID</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var net in networks)
+                    {
+                        <tr>
+                            <td>@net.Name</td>
+                            <td>@net.Driver</td>
+                            <td>@net.Scope</td>
+                            <td><small>@(net.ID.Length > 12 ? net.ID.Substring(0, 12) : net.ID)</small></td>
+                            <td>
+                                @if (!IsSystemNetwork(net.Name))
+                                {
+                                    <FluentButton Appearance="Appearance.Outline" OnClick="@(() => DeleteNetwork(net.ID))" Disabled="@(!_canWrite)">
+                                        Eliminar
+                                    </FluentButton>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int ServerId { get; set; }
+
+    private DockerServer? server;
+    private IList<NetworkResponse> networks = new List<NetworkResponse>();
+
+    private bool isLoading = true;
+    private string? authUserId;
+    private bool _canWrite;
+
+    private bool isCreating = false;
+    private string newNetworkName = string.Empty;
+    private string newNetworkDriver = "bridge";
+
+    private void GoBack() => Navigation.NavigateTo($"/docker/serverdetail/{ServerId}");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        authUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        _canWrite = authState.User.HasPermission("networks.write");
+
+        if (authUserId == null)
+        {
+            Navigation.NavigateTo("/Account/Login");
+            return;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            server = await ServerService.GetServerById(ServerId, authUserId!);
+            if (server != null)
+            {
+                networks = await LoadNetworks();
+            }
+            isLoading = false;
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task<IList<NetworkResponse>> LoadNetworks()
+    {
+        if (server == null) return null!;
+        return await DockerService.GetNetworks(server);
+    }
+
+    private async Task CreateNetwork()
+    {
+        if (!_canWrite) 
+        { 
+            ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); 
+            return; 
+        }
+
+        if (server == null || string.IsNullOrWhiteSpace(newNetworkName)) return;
+
+        isCreating = true;
+        StateHasChanged();
+
+        var (success, message, _) = await DockerService.CreateNetwork(server, newNetworkName, newNetworkDriver);
+
+        isCreating = false;
+        StateHasChanged();
+
+        ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
+
+        if (success)
+        {
+            newNetworkName = string.Empty;
+            networks = await LoadNetworks();
+        }
+    }
+
+    private async Task DeleteNetwork(string networkId)
+    {
+        if (!_canWrite) 
+        { 
+            ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); 
+            return; 
+        }
+        if (server == null) return;
+
+        // Dialogo de confirmación de borrado.
+        var dlg = await DialogService.ShowConfirmationAsync($"¿Seguro que quieres borrar la red <strong>{networkId}</strong>?", "Borrar", "Cancelar", "Confirmar borrado");
+        var result = await dlg.Result;
+        if (result.Cancelled) return;
+
+        var (success, message) = await DockerService.RemoveNetwork(server, networkId);
+        ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
+
+        if (success) {
+            networks = await LoadNetworks();
+        }
+    }
+
+    private static bool IsSystemNetwork(string name) => name is "bridge" or "host" or "none";
+}

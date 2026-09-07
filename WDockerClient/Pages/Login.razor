@@ -1,0 +1,60 @@
+@page "/"
+
+@inject ApiService Api
+@inject NavigationManager Navigation
+
+<PageTitle>WDockerClient — Acceso</PageTitle>
+
+<div class="d-flex align-items-center justify-content-center" style="min-height: 100vh;">
+    <div class="card shadow-sm" style="width: 100%; max-width: 380px;">
+        <div class="card-body p-4">
+            <h1 class="h4 text-center mb-4">WDockerClient</h1>
+
+            <EditForm Model="this" OnValidSubmit="LoginUser">
+                <div class="mb-3">
+                    <label class="form-label">Usuario</label>
+                    <input class="form-control" @bind="userName" @bind:event="oninput" />
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Contraseña</label>
+                    <input type="password" class="form-control" @bind="password" @bind:event="oninput" />
+                </div>
+
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger py-2">@error</div>
+                }
+
+                <button type="submit" class="btn btn-primary w-100" disabled="@isBusy">
+                    @(isBusy ? "Entrando..." : "Iniciar sesión")
+                </button>
+            </EditForm>
+
+        </div>
+        <div class="d-flex justify-content-center">
+            <span class="sr-only text-success" style="font-size:10px;">© 2026 WDockerClient - v1.0.0</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string userName = "";
+    private string password = "";
+    private string? error;
+    private bool isBusy;
+
+    private async Task LoginUser()
+    {
+        error = null;
+        isBusy = true;
+
+        error = await Api.Login(userName, password);
+
+        isBusy = false;
+
+        if (error is null)
+        {
+            Navigation.NavigateTo("/serverlist");
+        }
+    }
+}

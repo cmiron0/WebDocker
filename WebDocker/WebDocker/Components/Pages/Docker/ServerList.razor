@@ -1,0 +1,396 @@
+@page "/docker/serverlist"
+
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using WebDocker.Data
+@using WebDocker.Services
+
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+@inject ServerService ServerService
+@inject DockerService DockerService
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+
+<PageTitle>Servidores Docker</PageTitle>
+
+
+<div class="container-fluid px-4 py-3">
+
+
+    <!-- Cabecera -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0" style="color:var(--accent-dark);">
+                <FluentIcon Value="@(new Icons.Regular.Size24.Server())" Style="margin-right:8px;" />
+                Servidores Docker
+            </h2>
+            <p class="text-muted mb-0">Gestiona tus conexiones a servidores Docker remotos</p>
+        </div>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@NewServer" Disabled="@(!_canWrite)">
+            <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+            Nuevo Servidor
+        </FluentButton>
+    </div>
+
+
+    <!-- Crear, Editar Servidor -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if ((IsOnNewServer) || (IsOnEditServer && workServer != null))
+    {
+        <FluentCard Style="margin-bottom:24px; border: 2px solid var(--accent-dark);">
+            <h4 style="color:var(--accent-one); margin-bottom:16px;">
+                <FluentIcon Value="@(new Icons.Regular.Size20.PlugConnected())" Style="margin-right:6px;" />
+                @(IsOnNewServer ? "Conectar a nuevo servidor" : "Editar servidor")
+            </h4>
+
+            <EditForm Model="@workServer" OnValidSubmit="@SaveServer">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Nombre del servidor</label>
+                        <FluentTextField @bind-Value="workServer!.Name" Placeholder="Mi Servidor Docker" Style="width:100%;" />
+                        <ValidationMessage For="@(() => workServer.Name)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Host (IP o Hostname)</label>
+                        <FluentTextField @bind-Value="workServer.Host" Placeholder="192.168.1.100" Style="width:100%;" />
+                        <ValidationMessage For="@(() => workServer.Host)" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Puerto</label>
+                        <FluentNumberField @bind-Value="workServer.Port" Min="1" Max="65535" Style="width:75%;" />
+                    </div>
+
+                    <div class="col-md-2">
+                        <label class="form-label fw-bold">Sistema Operativo</label>
+                        <FluentSelect TOption="string" @bind-Value="workServer.OperatingSystem" Class="os-select">
+                            <FluentOption TOption="string" Value="@("Linux")">Linux</FluentOption>
+                            <FluentOption TOption="string" Value="@("Windows")">Windows</FluentOption>
+                        </FluentSelect>
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-3">
+                        <FluentCheckbox @bind-Value="workServer.UseTls" @bind-Value:after="OnTlsChanged" Label="Usar TLS (puerto 2376)" />
+                    </div>
+                </div>
+
+                @if (workServer.UseTls)
+                {
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <div class="alert alert-info py-2 mb-1" style="font-size:0.85em;">
+                                Para el puerto 2376 (TLS mutuo) pega el contenido de los 3 certificados generados en el host Docker.
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">CA (ca.pem)</label>
+                            <FluentTextArea @bind-Value="workServer.CaCertPem" Rows="5" Style="width:100%;" Placeholder="-----BEGIN CERTIFICATE-----" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Certificado cliente (cert.pem)</label>
+                            <FluentTextArea @bind-Value="workServer.ClientCertPem" Rows="5" Style="width:100%;" Placeholder="-----BEGIN CERTIFICATE-----" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Clave cliente (key.pem)</label>
+                            <FluentTextArea @bind-Value="workServer.ClientKeyPem" Rows="5" Style="width:100%;" Placeholder="-----BEGIN PRIVATE KEY-----" />
+                        </div>
+                    </div>
+                }
+
+                <div class="d-flex gap-2 mt-3">
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isSaving" Disabled="@(isSaving || !_canWrite)">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Save())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+                        @(IsOnNewServer ? "Conectar y Guardar" : "Guardar Cambios")
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" OnClick="@TestConnection" Loading="@isTesting" Disabled="@isTesting">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.PlugConnected())" Slot="start" />
+                        Probar Conexión
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" OnClick="@Cancel">
+                        Cancelar
+                    </FluentButton>
+                </div>
+
+                @if (!string.IsNullOrEmpty(connectionTestMessage))
+                {
+                    <div class="mt-3">
+                        <FluentMessageBar Title="@(connectionTestSuccess ? "Conexión exitosa" : "Error de conexión")"
+                                          Intent="@(connectionTestSuccess ? MessageIntent.Success : MessageIntent.Error)">
+                            @connectionTestMessage
+                        </FluentMessageBar>
+                    </div>
+                }
+
+            </EditForm>
+        </FluentCard>
+    }
+
+   
+
+    
+    <!-- Servidores -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <FluentProgressRing />
+        </div>
+    }
+    else if (servers == null || servers.Count == 0)
+    {
+        <FluentCard Style="text-align:center; padding:40px;">
+            <FluentIcon Value="@(new Icons.Regular.Size24.Server())" Color="Color.Neutral" />
+            <h4 class="mt-3" style="color:#6c757d;">No hay servidores configurados</h4>
+            <p class="text-muted">Haz clic en "Nuevo Servidor" para añadir tu primera conexión Docker.</p>
+        </FluentCard>
+    }
+    else
+    {
+        <!-- Lista de Servidores -->
+        <div class="row g-3">
+            @foreach (var server in servers)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <FluentCard class="card-server" Style="@($"border: 2px solid {GetOSColor(server.OperatingSystem)};")"
+                                @onclick="() => NavigateToServer(server.Id)">
+                        <div class="d-flex justify-content-between align-items-start">
+                            <div>
+                                <h5 class="mb-1" style="color:var(--accent-dark);">
+                                    <i class="bi @(server.OperatingSystem == "Linux" ? "bi-ubuntu" : "bi-windows")" style="margin-right:6px;"></i>
+                                    @server.Name
+                                </h5>
+                                <p class="text-muted mb-1" style="font-size:0.9em;">
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.Globe())" Style="margin-right:4px;" />
+                                    @server.Host : @server.Port
+                                </p>
+                                <p class="mb-0" style="font-size:0.8em; color:#6c757d;">
+                                    @server.OperatingSystem
+                                    @if (server.UseTls)
+                                    {
+                                        <FluentBadge Appearance="Appearance.Accent" Style="margin-left:6px;">TLS</FluentBadge>
+                                    }
+                                </p>
+                            </div>
+                            <div class="d-flex gap-1">
+                                <div @onclick:stopPropagation="true">
+                                    <FluentButton Appearance="Appearance.Stealth" Title="Editar"
+                                                 OnClick="@(() => EditServer(server))" Disabled="@(!_canWrite)">
+                                        <FluentIcon Value="@(new Icons.Regular.Size20.Edit())" Color="Color.Accent" />
+                                    </FluentButton>
+                                </div>
+                                <div @onclick:stopPropagation="true">
+                                    <FluentButton Appearance="Appearance.Stealth" Title="Eliminar"
+                                                 OnClick="@(async () => await DeleteServer(server))" Disabled="@(!_canWrite)">
+                                        <FluentIcon Value="@(new Icons.Regular.Size20.Delete())" Color="Color.Error" />
+                                    </FluentButton>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-2" style="font-size:0.75em; color:#adb5bd;">
+                            Añadido: @server.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                        </div>
+                    </FluentCard>
+                </div>
+            }
+        </div>
+ 
+    }
+</div>
+
+
+@code {
+    private List<DockerServer>? servers;
+    private bool isLoading = true;
+    private string? authUserId;
+    private bool _canWrite;
+
+    private bool IsOnNewServer = false;
+    private bool IsOnEditServer = false;
+    private DockerServer? workServer = null;
+
+    private bool isSaving = false;
+    private bool isTesting = false;
+
+    private string? connectionTestMessage;
+    private bool connectionTestSuccess;
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        authUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        _canWrite = authState.User.HasPermission("servers.write");
+
+        if (string.IsNullOrEmpty(authUserId))
+        {
+            isLoading = false;
+            return;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            if (!string.IsNullOrEmpty(authUserId))
+            {
+                servers = await ServerService.GetServers(authUserId);
+            }
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private string GetOSColor(string os) => os == "Linux" ? "var(--accent-five)" : "var(--accent-one)";
+
+    private void NavigateToServer(int serverId) =>  Navigation.NavigateTo($"/docker/serverdetail/{serverId}");
+
+    private void EditServer(DockerServer server)
+    {
+        if (!_canWrite) return;
+
+        IsOnNewServer = false;
+        connectionTestMessage = null;
+
+        // Copia de los datos del servidor, por si se cancela la operación.
+        workServer = new DockerServer
+        {
+            Id = server.Id,
+            Name = server.Name,
+            Host = server.Host,
+            Port = server.Port,
+            OperatingSystem = server.OperatingSystem,
+            UseTls = server.UseTls,
+            CaCertPem = server.CaCertPem,
+            ClientCertPem = server.ClientCertPem,
+            ClientKeyPem = server.ClientKeyPem,
+            UserId = server.UserId,
+            CreatedAt = server.CreatedAt
+        };
+
+        IsOnEditServer = true;
+    }
+
+    private void Cancel()
+    {
+        IsOnEditServer = false;
+        IsOnNewServer = false;
+        workServer = null;
+        connectionTestMessage = null;
+    }
+
+    private async Task DeleteServer(DockerServer server)
+    {
+        if (!_canWrite) return;
+        if (string.IsNullOrEmpty(authUserId)) return;
+
+        // Dialogo de confirmación de borrado.
+        var dlg = await DialogService.ShowConfirmationAsync($"¿Seguro que quieres borrar el servidor <strong>{server.Name}</strong>?", "Borrar", "Cancelar", "Confirmar borrado");
+        var result = await dlg.Result;
+        if (result.Cancelled) return;
+
+        // Borrado
+        await ServerService.DeleteServer(server.Id, authUserId);
+        servers = await ServerService.GetServers(authUserId);
+    }
+
+    private void NewServer()
+    {
+        IsOnEditServer = false;
+        workServer = new DockerServer { Port = 2375, OperatingSystem = "Linux", UserId = authUserId ?? string.Empty };
+        connectionTestMessage = null;
+        IsOnNewServer = true;
+    }
+
+
+    // Al marcar/desmarcar TLS, ajusta el puerto: 2376 con TLS, 2375 sin TLS (convención de Docker).
+    private void OnTlsChanged() => workServer?.Port = workServer.UseTls ? 2376 : 2375;
+
+    private async Task SaveServer()
+    {
+        if (!_canWrite) return;
+        if (string.IsNullOrEmpty(authUserId)) return;
+        if (string.IsNullOrWhiteSpace(workServer?.Name) || string.IsNullOrWhiteSpace(workServer?.Host)) return;
+
+        isSaving = true;
+        StateHasChanged();
+
+        if (IsOnNewServer)
+        {
+            // Probar conexión antes de guardar
+            var (success, message) = await DockerService.TestConnection(workServer);
+
+            if (!success)
+            {
+                connectionTestSuccess = false;
+                connectionTestMessage = $"No se pudo conectar al servidor. {message}.";
+                StateHasChanged();
+                Task.Delay(5000).Wait();
+            }
+
+            // Aunque la conexión falle guardamos igualmente, el usuario puede querer guardar la config para más adelante
+            await ServerService.AddServer(workServer);
+            IsOnNewServer = false;
+        }
+
+        if (IsOnEditServer)
+        {
+            await ServerService.UpdateServer(workServer!);
+            IsOnEditServer = false;
+        }
+
+        workServer = null;
+        servers = await ServerService.GetServers(authUserId);
+
+        isSaving = false;
+        StateHasChanged();
+
+    }
+
+    private async Task TestConnection()
+    {
+        if (workServer != null)
+            await TestConnection(workServer);
+    }
+
+    private async Task TestConnection(DockerServer server)
+    {
+        if (server == null || string.IsNullOrWhiteSpace(server.Host)) return;
+
+        isTesting = true;
+        connectionTestMessage = null;
+        StateHasChanged();
+
+        var (success, message) = await DockerService.TestConnection(server);
+        connectionTestSuccess = success;
+        connectionTestMessage = message;
+
+        if (success)
+        {
+
+            var info = await DockerService.GetDockerInfo(server);
+            if (info != null)
+            {
+                connectionTestMessage = $"Docker {info.DockerVersion} en {info.OperatingSystem} ({info.Architecture}) — " +
+                                         $"{info.TotalContainers} contenedores, {info.TotalImages} imágenes, {info.CPUs} CPUs, {info.MemoryFormatted} RAM";
+            }
+        }
+
+        isTesting = false;
+    }
+    
+}

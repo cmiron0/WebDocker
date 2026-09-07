@@ -1,0 +1,54 @@
+@page "/docker/doc-introduccion"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Introducción — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-abstract" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Abstract</FluentAnchor>
+            <span class="doc-progress">4 / 23</span>
+            <FluentAnchor Href="/docker/doc-objetivos" Appearance="Appearance.Lightweight">Objetivos <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Introducción</h1>
+        </header>
+
+        <article class="doc-content">
+            <h2 class="doc-h2">Antecedentes</h2>
+            <p class="doc-p">Hay un problema que arrastra el desarrollo de software desde hace décadas y que resulta ampliamente reconocido en el ámbito profesional, que una aplicación corra igual en el portátil del desarrollador, en preproducción y en el servidor real. La primera respuesta seria fue la virtualización. Antes de eso, lo normal era instalar directamente sobre servidores físicos, y eso traía conflictos de versiones, dependencias rotas y, con el tiempo, servidores sobrecargados de cosas instaladas a mano.</p>
+            <p class="doc-p">Las máquinas virtuales (VMs) cambiaron las cosas. Permitían aislar aplicaciones y virtualizar el hardware completo del servidor. El problema es que cada VM se trae detrás un sistema operativo entero, con todo lo que eso implica, memoria, espacio en disco y arranques lentos (Merkel, 2014). Replicar un sistema operativo por cada instancia funciona, pero la sobrecarga acaba pesando.</p>
+            <p class="doc-p">Los contenedores aparecieron como alternativa. En lugar de virtualizar el hardware al completo, empaquetan la aplicación con sus dependencias y comparten el kernel del sistema anfitrión. Bajo el capó esto se apoya en mecanismos del kernel de Linux como namespaces y cgroups, que aíslan procesos sin la sobrecarga de una VM. Docker nació dentro de dotCloud, una empresa de PaaS (Platform as a Service / Plataforma como Servicio) fundada por Solomon Hykes. Se liberó como código abierto en marzo de 2013, durante la PyCon (Conferencia anual internacional dedicada al lenguaje de programación Python), y la adopción fue muy rápida (Hykes, 2013). Lo que aportó Docker no fue inventar la contenedorización, sino dejarla al alcance de cualquiera con una plataforma estandarizada y razonablemente sencilla para empaquetar aplicaciones.</p>
+            <p class="doc-p">Por debajo, Docker tiene un modelo cliente-servidor, el cliente, el Docker Engine y los registros de imágenes. Todos se hablan a través de una API REST (Pahl, 2015). Y esa API REST es justo el punto donde encaja este proyecto, nuestra plataforma web no es más que un cliente programático del motor de Docker con una interfaz gráfica encima.</p>
+            <p class="doc-p">Mientras tanto, DevOps y los microservicios han disparado la demanda de entornos reproducibles, despliegues rápidos y escalabilidad bajo demanda. Los contenedores encajan ahí casi sin esfuerzo, sobre todo porque se llevan bien con CI/CD (Continuous Integration / Continuous Delivery o Deployment - Integración Continua y Entrega o Despliegue Continuo) y mantienen la coherencia entre desarrollo, pruebas y producción (Newman, 2021).</p>
+            <p class="doc-p">Pero hay una contrapartida. La gestión de Docker se apoya principalmente en la CLI (Command Line Interface - Interfaz de Línea de Comandos). Esa CLI es potente, sí, pero también es poco intuitiva y se queda corta en cuanto crecen los servicios y los usuarios. Esta situación se vuelve especialmente patente en entornos donde se administra un número elevado de contenedores. Herramientas como Portainer o Rancher llevan tiempo demostrando que una interfaz gráfica suma valor real en este escenario.</p>
+            <p class="doc-p">De ahí este proyecto, una plataforma web de administración de contenedores Docker con operaciones CRUD básicas (crear, leer, actualizar y eliminar). La idea es bajar la barrera de entrada, evitar que haya que memorizar la sintaxis de Docker y ofrecer algo más visual. Al final, centralizar la gestión en una interfaz reduce fricción tanto para desarrollo como para operaciones.</p>
+            <h2 class="doc-h2">Planteamiento del problema</h2>
+            <p class="doc-p">Docker se ha adoptado de forma masiva, pero el grueso de las tareas de administración (crear, actualizar, eliminar, monitorizar, configurar contenedores, imágenes, redes, volúmenes) sigue ocurriendo en la terminal. La CLI es potente, eso no se discute, aunque también es exigente, hay que tener cierto bagaje técnico para moverse con soltura. Y eso frena la adopción entre perfiles menos técnicos.</p>
+            <p class="doc-p">El problema no es solo de aprendizaje. Cuando uno depende exclusivamente de la CLI, los errores tipográficos al escribir comandos son una fuente real de incidencias, sobre todo cuando hay prisa o se trabaja directamente en producción. A eso se suma que, al gestionar varios servicios o nodos, sin una vista centralizada del estado del sistema cuesta ver lo que está pasando. Detectar fallos sin esa vista es bastante incómodo.</p>
+            <p class="doc-p">En entornos con muchos contenedores interconectados, la falta de visión global desemboca en cosas concretas, configuraciones mal aplicadas, tiempos altos de resolución de incidencias, recursos infrautilizados y, cuando se hace todo a mano, riesgos de seguridad evitables. Y a corto plazo, dependencia del personal especializado en DevOps.</p>
+            <p class="doc-p">Visto desde la organización, estas dificultades cuestan tiempo y bajan la eficiencia. Newman (2021) ya lo apunta, las herramientas visuales ayudan a la productividad cuando la infraestructura es compleja.</p>
+            <p class="doc-p">Hay otro frente, la gestión manual choca con DevOps moderno, que necesita procesos repetibles, auditables y escalables. Y sin una capa central, tampoco hay forma sólida de garantizar autenticación, autorización y registro de acciones.</p>
+            <p class="doc-p">La pregunta central del proyecto se puede formular así, ¿cómo diseñar e implementar una plataforma web que permita gestionar contenedores Docker de forma intuitiva, segura y centralizada, sin tanta fricción operativa?</p>
+            <p class="doc-p">La propuesta es una aplicación web multicapa que actúa como cliente de la API de Docker Engine. Por delante, una interfaz que simplifica las tareas de conexión y gestión, por detrás, autenticación, autorización y monitorización.</p>
+            <h2 class="doc-h2">Justificación</h2>
+            <p class="doc-p">El desarrollo de software se apoya cada vez más en la contenedorización para conseguir que las aplicaciones se comporten igual en distintos entornos. En este terreno, Docker se ha convertido en la referencia, empaqueta una aplicación con todas sus dependencias en contenedores estandarizados (AWS, s. f.; IBM, s. f.; Docker, s. f.).</p>
+            <p class="doc-p">Eso ha simplificado bastante los despliegues y ha reducido la fricción entre desarrollo y producción (DigitalOcean, s. f.; Google Cloud, s. f.). El problema, otra vez, es operativo, el día a día sigue ejecutándose mayoritariamente por CLI.</p>
+            <p class="doc-p">Y la CLI, como ya se ha dicho, es potente pero exigente. A poco que haya desarrolladores menos familiarizados, situación se complica. Tampoco facilita ver el estado global del sistema cuando hay varios servicios y usuarios coexistiendo.</p>
+            <p class="doc-p">Este proyecto propone una plataforma web con interfaz gráfica para centralizar esa gestión. Iniciar, detener, reiniciar, ver logs o eliminar contenedores, manejar imágenes, redes y volúmenes, todo desde un mismo panel.</p>
+            <p class="doc-p">Una herramienta así baja la complejidad técnica, mejora la colaboración entre equipos y aporta visibilidad sobre el conjunto del entorno, en la línea de lo que ya hacen Portainer o Docker Dashboard (Docksal, s. f.; GitHub, s. f.).</p>
+            <p class="doc-p">La CLI es muy flexible, pero presenta una barrera de entrada considerable para los perfiles menos técnicos. Las GUI (Graphical User Interface - Interfaz Gráfica de Usuario) mejoran la usabilidad, reducen errores humanos y dan visión de conjunto. Es una evolución habitual en la mayoría de las herramientas a medida que se generalizan.</p>
+            <p class="doc-p">Varios estudios de ingeniería de software apuntan en esa dirección, visualizar y centralizar operaciones sube la productividad y baja la fricción mental sobre el sistema (Newman, 2021). Portainer y Rancher son la prueba práctica.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-abstract" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Abstract</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-objetivos" Appearance="Appearance.Lightweight">Objetivos <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

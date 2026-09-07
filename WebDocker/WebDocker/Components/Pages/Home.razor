@@ -1,0 +1,101 @@
+﻿@page "/"
+
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+
+@rendermode InteractiveServer
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+<PageTitle>WebDocker</PageTitle>
+
+<div class="rounded-main">
+    <div class="container mx-auto p-4">
+
+        <AuthorizeView>
+            <Authorized>
+
+                <!-- Home -->
+                <div class="container-fluid px-2 py-3">
+
+                    <div class="text-center mb-4">
+                        <h2 style="color:var(--accent-dark); font-weight:700;">
+                            <FluentIcon Value="@(new Icons.Regular.Size24.Home())" Style="margin-right:8px;" />
+                            Bienvenido a WebDocker
+                        </h2>
+                        <p class="text-muted">
+                            Hola, <strong>@userName</strong> — Gestión de contenedores Docker
+                        </p>
+                    </div>
+
+                    <div class="row g-4 justify-content-center">
+
+                        <!-- Servidores -->
+                        <div class="col-md-4" @onclick="GoToServers" style="cursor:pointer;">
+                            <FluentCard class="card" Style="text-align:center; padding:30px; border: 2px solid var(--accent-one);">
+                                <FluentIcon Value="@(new Icons.Regular.Size24.Server())" Color="Color.Custom" CustomColor=var(--accent-one); />
+                                <h4 class="mt-3" style="color:var(--accent-dark);">Servidores</h4>
+                                <p class="text-muted" style="font-size:0.9em;">Gestiona las conexiones a servidores Docker</p>
+                            </FluentCard>
+                        </div>
+
+                        <!-- Usuarios (Admin) -->
+                        <AuthorizeView Roles="Administrador" Context="adminCtx">
+                            <Authorized>
+                                <div class="col-md-4" @onclick="GoToUsers" style="cursor:pointer;">
+                                    <FluentCard class="card" Style="text-align:center; padding:30px; border: 2px solid var(--accent-two);">
+                                        <FluentIcon Value="@(new Icons.Regular.Size24.People())" Color="Color.Custom" CustomColor=var(--accent-two); />
+                                        <h4 class="mt-3" style="color:var(--accent-dark);">Usuarios</h4>
+                                        <p class="text-muted" style="font-size:0.9em;">Administra los usuarios del sistema</p>
+                                    </FluentCard>
+                                </div>
+
+                                <div class="col-md-4" @onclick="GoToRoles" style="cursor:pointer;">
+                                    <FluentCard class="card" Style="text-align:center; padding:30px; border: 2px solid var(--accent-three);">
+                                        <FluentIcon Value="@(new Icons.Regular.Size24.ShieldKeyhole())" Color="Color.Custom" CustomColor=var(--accent-three); />
+                                        <h4 class="mt-3" style="color:var(--accent-dark);">Roles</h4>
+                                        <p class="text-muted" style="font-size:0.9em;">Gestiona los roles de seguridad del sistema</p>
+                                    </FluentCard>
+                                </div>
+                            </Authorized>
+                        </AuthorizeView>
+
+                    </div>
+                </div>
+
+            </Authorized>
+            <NotAuthorized>
+                <header class="text-center mb-5">
+                    <h1 class="fs-1 fw-bold mb-2" style="color: var(--accent-dark);">Plataforma Web para la Gestión de Contenedores Docker</h1>
+                    <p class="fs-4" style="color: var(--accent-one);">" WebDocker "</p>
+                </header>
+
+                <section class="text-center bg-white rounded-lg shadow-lg p-4 p-md-5 mx-auto" style="max-width: 900px;">
+                    <h2 class="fs-2 fw-bold mb-3" style="color: var(--accent-dark);">Grado en Ingeniería Informática</h2>
+                    <h6 class="fs-4 fw-bold mb-3" style="color: var(--accent-dark);">(VIU) - Universidad Internacional de Valencia</h6>
+                    <h3 class="fs-3 fw-bold mb-4" style="color: var(--accent-dark);">Curso académico 2025-2026</h3>
+                    <br />
+                    <h4 class="fs-5 fw-bold text-start" style="color: var(--accent-one);">Alumno: Carlos Lugo Mirón</h4>
+                    <h4 class="fs-5 fw-bold text-start" style="color: var(--accent-one);">Director de TFG: Hector Simarro Moncholi</h4>
+                </section>
+            </NotAuthorized>
+        </AuthorizeView>
+
+    </div>
+</div>
+
+@code {
+    private string userName = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        userName = authState.User.Identity?.Name ?? "Usuario";
+    }
+
+    private void GoToServers() => Navigation.NavigateTo("/docker/serverlist");
+    private void GoToUsers() => Navigation.NavigateTo("/admin/admusers");
+    private void GoToRoles() => Navigation.NavigateTo("/admin/admroles");
+}

@@ -1,0 +1,49 @@
+@page "/docker/doc-marco-fundamentos"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Marco teórico · Fundamentos de Docker — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-objetivos" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Objetivos</FluentAnchor>
+            <span class="doc-progress">6 / 23</span>
+            <FluentAnchor Href="/docker/doc-marco-requerimientos" Appearance="Appearance.Lightweight">Marco teórico · Requerimientos del sistema <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Marco teórico</h1>
+            <h2 class="doc-title">Fundamentos de Docker</h2>
+        </header>
+
+        <article class="doc-content">
+            <h3 class="doc-h3">Historia de Docker</h3>
+            <p class="doc-p">Docker nació como proyecto interno en dotCloud, una empresa PaaS de Solomon Hykes. La idea original era gestionar de forma transparente la infraestructura de sus clientes, pero la pieza acabó siendo tan útil que en 2013 la propia dotCloud dejó aparcado su PaaS para volcarse exclusivamente en Docker. Se liberó como código abierto en marzo de 2013 y la adopción fue inmediata (Wikipedia, s. f.).</p>
+            <p class="doc-p">Antes de Docker, los despliegues eran configuración manual o máquinas virtuales completas, con la sobrecarga de recursos que eso trae. Docker se apoya en las capacidades de aislamiento del kernel anfitrión y se ahorra la capa de sistema operativo por aplicación. Resultado: más ligero y rápido (AWS, s. f.; IBM, s. f.).</p>
+            
+            <h3 class="doc-h3">Arquitectura de Docker</h3>
+            <p class="doc-p">Docker sigue un modelo cliente-servidor con tres componentes: </p>
+            <p class="doc-p">• El Cliente Docker: la herramienta con la que interactúan los usuarios. En este proyecto, la plataforma web actúa como cliente de Docker y traduce las acciones del usuario en llamadas a la API de Docker Engine.</p>
+            <p class="doc-p">• El Docker Engine (dockerd – Docker daemon): un proceso que se ejecuta en el servidor anfitrión, responsable de construir y gestionar imágenes, contenedores, volúmenes y redes.</p>
+            <p class="doc-p">• El Docker Registry: un servicio para almacenar y distribuir imágenes de Docker. El registro público por defecto es Docker Hub (Docker Hub, s. f.), aunque también se pueden usar registros privados.</p>
+            <p class="doc-p">Estos componentes se comunican mediante API REST o gRPC, y eso es lo que permite construir herramientas externas y automatizar (Revistas Unilibre, s. f.; Docker, s. f.). En la práctica, nuestra plataforma vive en esa capa, traduce lo que el usuario hace en la interfaz a llamadas contra la API de Docker.</p>
+            
+            <h3 class="doc-h3">Componentes Principales</h3>
+            <p class="doc-p">Los objetos principales de Docker que la plataforma gestionara son:</p>
+            <p class="doc-p">• Imágenes: plantillas de solo lectura que definen el contenido de un contenedor. Incluyen el código, el entorno de ejecución, las bibliotecas y las dependencias. Se construyen desde un Dockerfile y se almacenan en un registro.</p>
+            <p class="doc-p">• Contenedores: instancias de una imagen en ejecución. A diferencia de las imágenes, son entornos ejecutables que pueden iniciarse, detenerse, reiniciarse o eliminarse a través de la API o la CLI.</p>
+            <p class="doc-p">• Dockerfiles: archivos de texto con las instrucciones para construir una imagen.</p>
+            <p class="doc-p">• Registros: repositorios para imágenes de Docker. Docker Hub es el registro público más grande y el predeterminado.</p>
+            <p class="doc-p">Estos objetos son los que permiten levantar entornos reproducibles y portables, tanto en desarrollo como en despliegue continuo (DigitalOcean, s. f.; IBM, s. f.).</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-objetivos" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Objetivos</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-marco-requerimientos" Appearance="Appearance.Lightweight">Marco teórico · Requerimientos del sistema <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

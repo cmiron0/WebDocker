@@ -1,0 +1,15 @@
+/* CSS for ServerList component */
+
+::deep .card-server {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.3s ease;
+    /*border: 2px solid var(--accent-one);*/
+}
+
+    ::deep .card-server:hover {
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
+::deep .os-select {
+    min-width: 150px;
+}
