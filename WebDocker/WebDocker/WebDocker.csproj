@@ -16,6 +16,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Remove="Services\AuditService.cs" />
     <Compile Remove="Services\DockerEngineService.cs" />
     <Compile Remove="Services\DockerServerService.cs" />
     <Compile Remove="Services\_AuditService.cs" />
