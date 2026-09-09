@@ -145,8 +145,7 @@ public class ApiService
     {
         try
         {
-            return await _http.GetFromJsonAsync<WDCContainerStats>(
-                $"api/servers/{serverId}/containers/{containerId}/stats");
+            return await _http.GetFromJsonAsync<WDCContainerStats>($"api/servers/{serverId}/containers/{containerId}/stats");
         }
         catch
         {
@@ -159,8 +158,7 @@ public class ApiService
     {
         try
         {
-            return await _http.GetFromJsonAsync<WDCContainerDetail>(
-                $"api/servers/{serverId}/containers/{containerId}");
+            return await _http.GetFromJsonAsync<WDCContainerDetail>($"api/servers/{serverId}/containers/{containerId}");
         }
         catch
         {
