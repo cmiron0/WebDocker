@@ -1,0 +1,45 @@
+@page "/docker/doc-objetivos"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Objetivos — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-introduccion" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Introducción</FluentAnchor>
+            <span class="doc-progress">5 / 23</span>
+            <FluentAnchor Href="/docker/doc-marco-fundamentos" Appearance="Appearance.Lightweight">Marco teórico · Fundamentos de Docker <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Objetivos</h1>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">Este informe funciona como hoja de ruta técnica para diseñar, implementar y desplegar una plataforma de gestión de contenedores Docker. Si Docker en su día estandarizó algo que antes se hacía a mano y de forma desordenada, este proyecto va en la misma línea, pero llevando la experiencia de la CLI a una interfaz visual.</p>
+            
+            <h3 class="doc-h3">Objetivo general</h3>
+            <p class="doc-p">Diseñar, desarrollar e implementar una plataforma web para la gestión de contenedores Docker con interfaz gráfica intuitiva, segura y centralizada, capaz de administrar el ciclo de vida de contenedores, imágenes, volúmenes y redes. El fin último es bajar la barrera de entrada de la CLI y mejorar la eficiencia operativa.</p>
+            
+            <h3 class="doc-h3">Objetivos específicos</h3>
+            <p class="doc-p">• Lo primero es entender por dentro la arquitectura de Docker y, sobre todo, su API REST. Sin esa base, integrar Docker en una aplicación web acaba siendo un trabajo sin cimientos.</p>
+            <p class="doc-p">• A partir de ahí, especificar los requisitos funcionales y no funcionales que la plataforma tiene que cumplir, con la gestión de contenedores, la seguridad y la usabilidad como pilares principales.</p>
+            <p class="doc-p">• Con la especificación en la mano, toca diseñar una arquitectura software en capas, separando responsabilidades entre frontend, backend y los servicios que hablan con Docker. Esa separación, después, facilita bastante el mantenimiento y las pruebas.</p>
+            <p class="doc-p">• Luego viene la implementación, una plataforma web funcional sobre ASP.NET Core 10.0 y Blazor que cubra el ciclo de vida completo de los contenedores Docker (crear, consultar, modificar, eliminar) desde una interfaz gráfica.</p>
+            <p class="doc-p">• En cuanto a seguridad, incorporar autenticación y control de acceso por roles, apoyados en JWT y RBAC. Sin esa pieza, la plataforma no pasa de prototipo.</p>
+            <p class="doc-p">• Una vez levantado el sistema, evaluarlo, hasta qué punto resulta usable, si funciona con soltura y en qué medida reduce de verdad la dependencia de la línea de comandos para las tareas del día a día.</p>
+            <p class="doc-p">• Y, por último, garantizar que todo funciona tanto en Linux como en Windows. Para eso se opta desde el principio por tecnologías multiplataforma, planificarlo después suele salir caro.</p>
+            <p class="doc-p">La idea de fondo, es hacer que una tecnología potente pero un poco árida sea utilizable por más gente y bajar la dependencia de la CLI.</p>
+            <p class="doc-p">Como componente adicional, al margen de los objetivos principales, se contempla incorporar un dashboard de salud de contenedores con detección de anomalías y recomendaciones automáticas, alimentado periódicamente con datos extraídos de la propia API de Docker. No es algo que el TFG necesite para considerarse cumplido, es una capa extra que da profundidad al proyecto y permite explorar lo que se puede hacer con la telemetría que Docker ya devuelve por defecto.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-introduccion" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Introducción</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-marco-fundamentos" Appearance="Appearance.Lightweight">Marco teórico · Fundamentos de Docker <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

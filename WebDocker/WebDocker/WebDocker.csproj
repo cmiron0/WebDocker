@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-WebDocker-e19b94a8-7bdc-476c-8113-722494e69bf4</UserSecretsId>
+    <BlazorDisableThrowNavigationException>true</BlazorDisableThrowNavigationException>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Data\MigrationsBacks\**" />
+    <Content Remove="Data\MigrationsBacks\**" />
+    <EmbeddedResource Remove="Data\MigrationsBacks\**" />
+    <None Remove="Data\MigrationsBacks\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="Services\DockerEngineService.cs" />
+    <Compile Remove="Services\DockerServerService.cs" />
+    <Compile Remove="Services\_AuditService.cs" />
+    <Compile Remove="Services\_DockerEngineService.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="Components\Pages\Docker\ServerImagesLoad.razor" />
+    <Content Remove="wwwroot\app.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Components\Layout\_NavActionDoc.razor.css" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\WebDocker.Client\WebDocker.Client.csproj" />
+    <PackageReference Include="Docker.DotNet" Version="3.125.15" />
+    <PackageReference Include="Docker.DotNet.X509" Version="3.125.15" />
+    <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Components.WebAssembly.Server" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.10" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.10" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.10" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components" Version="4.14.4" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Emoji" Version="4.14.4" />
+    <PackageReference Include="Microsoft.FluentUI.AspNetCore.Components.Icons" Version="4.14.4" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
+    <PackageReference Include="Serilog.Sinks.File" Version="7.0.0" />
+    <PackageReference Include="SQLitePCLRaw.bundle_e_sqlite3" Version="3.0.5" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="DataBase\" />
+    <Folder Include="wwwroot\images\" />
+  </ItemGroup>
+
+</Project>

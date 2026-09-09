@@ -1,0 +1,61 @@
+@page "/docker/doc-resultados"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Resultados — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-desarrollo" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Desarrollo</FluentAnchor>
+            <span class="doc-progress">15 / 23</span>
+            <FluentAnchor Href="/docker/doc-conclusiones" Appearance="Appearance.Lightweight">Conclusiones <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Resultados</h1>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">Este capítulo recoge los resultados del proyecto desde tres perspectivas. Primero, lo que se entrega en forma de producto, qué hace la plataforma y con qué cifras concretas. Después, lo que arrojan las pruebas en cuanto a cumplimiento de requisitos y comportamiento del sistema. Y, por último, una comparación honesta con las herramientas que ya existen y con los objetivos que se fijaron al inicio.</p>
+            
+            <h2 class="doc-h2">Solución</h2>
+            <p class="doc-p">WebDocker es una aplicación web construida sobre Blazor Web App (render Server y WebAssembly, predominando Server) y ASP.NET Core 10.0, con persistencia en Entity Framework Core sobre SQLite. La interfaz cubre los cinco módulos planteados en el anteproyecto: autenticación y gestión de cuentas, CRUD de contenedores Docker, monitorización de su estado, gestión de imágenes/volúmenes/redes y una capa de seguridad con autenticación mixta (cookie en la web, JWT en la API) y RBAC. De forma independiente, una API REST que expone la funcionalidad de gestión de Docker para clientes externos, scripts, herramientas tipo Postman o un futuro cliente móvil pueden operar sobre Docker igual que hace un usuario desde el navegador. La administración de usuarios y roles quedan solo en la interfaz web.</p>
+            
+            <h2 class="doc-h2">Cifras del proyecto</h2>
+            <p class="doc-p">Para hacerse una idea del volumen de la entrega, estos son los números más representativos del código y de los activos del proyecto:</p>
+            <p class="doc-p">• Treinta endpoints REST repartidos en seis controladores: Auth (4), Servers (6), Engine (11), Images (3), Volumes (3) y Networks (3).</p>
+            <p class="doc-p">• Seis servicios de aplicación: DockerServerService, DockerEngineService, JwtTokenService, PermissionService, AuditService y PermissionClaimsTransformation.</p>
+            <p class="doc-p">• Cinco páginas Blazor de gestión (ServerList, ServerDetail, ServerImages, ServerVolumes, ServerNetworks) más tres de administración (AdminUsers, AdminRoles y AdminAudit).</p>
+            <p class="doc-p">• Una migración de Entity Framework Core, CreateInitialSchema, que crea todo el esquema de base de datos y una siembra de datos a través de la clase IdentitySeed (usuarios, servidores, roles y permisos). Ambas se aplican automáticamente al arrancar la aplicación.</p>
+            <p class="doc-p">Estas cifras corresponden a un proyecto de alcance individual, un volumen de código moderado, abarcable y mantenible por una sola persona, lejos de los cientos de miles de líneas de una herramienta consolidada como Portainer, pero suficiente para cubrir el ciclo completo de gestión. La arquitectura por capas, con la API REST como superficie de integración, favorece el mantenimiento y la evolución del sistema.</p>
+            
+            <h2 class="doc-h2">Resultados funcionales</h2>
+            <p class="doc-p">La plataforma cubre los siete requisitos funcionales definidos en el marco teórico. El ciclo de vida del contenedor (RF-001), la gestión de imágenes (RF-004), la de volúmenes y redes (RF-005), y la autenticación (RF-006) que se resuelven tanto desde la interfaz como desde la API. La visualización de logs (RF-003) se obtiene como una instantánea de las últimas líneas del contenedor, disponible tanto en la interfaz como en el endpoint <em>/api/servers/{id}/containers/{cid}/logs</em>. La monitorización de recursos (RF-002) muestra el consumo de CPU y memoria de cada contenedor mediante muestras puntuales de <em>docker stats</em>, bajo demanda. El RBAC (RF-007) cubre desde el modelo de datos hasta el endpoint, los permisos viajan como claims en el token y cada acción del controlador pide el suyo.</p>
+            
+            <h2 class="doc-h2">Resultados de las pruebas</h2>
+            <p class="doc-p">El grueso de la validación fue manual, con la aplicación corriendo contra un Docker Engine real. Se recorre el ciclo completo desde la interfaz, registrar servidor, probar conexión, crear y gestionar contenedores, imágenes, volúmenes y redes, y los casos de error, motor apagado, imagen inexistente, borrado de un volumen en uso. En todos ellos la aplicación responde con un mensaje claro en pantalla y sigue funcionando. A eso se suma la evaluación informal de usabilidad planteada en la metodología, un grupo reducido de usuarios de prueba usó la plataforma para realizar tareas básicas y de su feedback salieron retoques en la navegación y en los mensajes de error.</p>
+            
+            <h2 class="doc-h2">Calidad del código y mantenibilidad</h2>
+            <p class="doc-p">La estructura sigue el patrón de separación entre presentación, lógica y datos, los controladores de recursos Docker no tocan la base directamente, sino que pasan por los servicios (AuthController es la excepción, gestiona los refresh tokens y los usuarios directamente con AppDbContext y UserManager). En la frontera con la API, los controladores convierten las entidades de dominio en DTOs para no exponer las entidades de dominio. Los nombres siguen las convenciones de C# (PascalCase para clases y métodos públicos, camelCase para campos privados con prefijo _). El uso de inyección de dependencias en Program.cs deja claros los puntos donde enchufar nuevas piezas, lo que facilita ampliar funcionalidad sin tocar código ya escrito.</p>
+            
+            <h2 class="doc-h2">Comparación cualitativa con alternativas existentes</h2>
+            <p class="doc-p">Frente a Portainer, que cubre Docker y Kubernetes con una interfaz mucho más pulida y diez años de desarrollo, WebDocker es más modesto en alcance. Lo que aporta en cambio es ser una base abierta sobre el stack .NET, con menos líneas de código que estudiar y un sistema de roles/permisos preparado para crecer. Frente a Docker Desktop, que solo gestiona el motor local, WebDocker permite manejar varios hosts remotos con autenticación, ese es el escenario que justifica el proyecto. Frente a LazyDocker (una interfaz de terminal para un único desarrollador) o Dockge (web, pero pensada para un solo usuario y centrada en stack Docker Compose), WebDocker es web y multiusuario, lo que cambia la naturaleza del producto, deja de ser una herramienta para un desarrollador y pasa a serlo para un equipo.</p>
+            
+            <h2 class="doc-h2">Limitaciones</h2>
+            <p class="doc-p">El proyecto entregado tiene tres limitaciones que conviene reconocer. La primera, la cobertura de las pruebas automatizadas, la validación funcional es manual, y faltan tests automatizados de integración contra un Docker Engine real y pruebas de extremo a extremo que recorran la interfaz sola. La segunda, la falta de un despliegue probado en producción, desplegar en un VPS real con dominio y certificado SSL. Y la tercera, el rendimiento, la escalabilidad se ha cuidado en el diseño, pero no hay benchmarks formales que la midan con carga real.</p>
+            <p class="doc-p">El impacto práctico de estas limitaciones no es menor. Sin pruebas de extremo a extremo, una regresión en un flujo crítico, el borrado de un contenedor o la renovación de un token, por ejemplo, podría llegar a producción sin detectarse, ya que la validación manual no se ejecuta en cada cambio. Y la ausencia de benchmarks implica que, en un entorno empresarial con decenas de usuarios concurrentes o cientos de contenedores, no hay forma de anticipar dónde estaría el cuello de botella ni de garantizar tiempos de respuesta, habría que medir antes de comprometer la herramienta en un caso real. Conviene además ser honesto sobre el alcance, WebDocker no resuelve la orquestación a gran escala, el balanceo entre nodos ni el autoescalado, y para esos escenarios una solución madura como Portainer, con soporte de Kubernetes, gestión de stacks y años de rodaje en producción, sigue siendo claramente superior. El proyecto cubre bien la gestión de contenedores en uno o varios hosts para equipos pequeños, pero no aspira a sustituir a esas plataformas en infraestructuras complejas.</p>
+            
+            <h2 class="doc-h2">Comparación con los objetivos iniciales</h2>
+            <p class="doc-p">Los siete objetivos específicos del anteproyecto se cumplen: el análisis de la arquitectura de Docker y su API REST, la especificación de requisitos, el diseño en capas, la implementación de la plataforma, la seguridad con JWT y RBAC por permisos finos, la compatibilidad con hosts Linux y Windows, y la evaluación de usabilidad. Sobre esta última conviene dejar un matiz por escrito: se hizo de forma informal, con un grupo reducido de usuarios de prueba resolviendo tareas básicas, sin cuestionario sistemático. De ahí salieron ajustes reales en la navegación y los mensajes de error, pero son conclusiones que sirven como guía, no como dato cuantitativo. El componente extra opcional del anteproyecto (el dashboard de salud con detección de anomalías) no se aborda y queda como línea futura.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-desarrollo" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Desarrollo</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-conclusiones" Appearance="Appearance.Lightweight">Conclusiones <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

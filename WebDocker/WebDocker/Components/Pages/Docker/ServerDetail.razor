@@ -1,0 +1,873 @@
+@page "/docker/serverdetail/{ServerId:int}"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+
+@using global::Docker.DotNet.Models
+@using System.ComponentModel.DataAnnotations
+@using WebDocker.Data
+@using WebDocker.Services
+
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+@inject ServerService ServerService
+@inject DockerService DockerService
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IDialogService DialogService
+@inject IToastService ToastService
+
+<PageTitle>@(server?.Name ?? "Servidor Docker")</PageTitle>
+
+<div class="container-fluid px-4 py-3">
+
+
+    <!-- Botón Volver -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    <div class="mb-3">
+        <FluentButton Appearance="Appearance.Stealth" OnClick="@GoBack">
+            <FluentIcon Value="@(new Icons.Regular.Size20.ArrowLeft())" Slot="start" />
+            Volver a Servidores
+        </FluentButton>
+    </div>
+
+    
+    <!-- Conectando al servidor (Docker) -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (isConnecting)
+    {
+        <div style="position:fixed; inset:0; background:rgba(0,0,0,.4); display:flex; align-items:center; justify-content:center; z-index:1000;">
+            <div style="background:#fff; padding:24px 32px; border-radius:8px; display:flex; align-items:center; gap:16px; box-shadow:0 4px 20px rgba(0,0,0,0.2);">
+                <FluentProgressRing />
+                <span>Intentando conectar a <strong>@server?.Name</strong>…</span>
+            </div>
+        </div>
+    }
+    
+
+    <!-- Servidor -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <FluentProgressRing />
+            <span class="ms-3">Cargando...</span>
+        </div>
+    }
+    else if (server == null)
+    {
+        <FluentMessageBar Title="Error" Intent="MessageIntent.Error">
+            Servidor no encontrado o no tienes permisos para acceder.
+        </FluentMessageBar>
+    }
+    else
+    {
+        <!-- Cabecera: Info Servidor -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        <FluentCard Style="@($"margin-bottom:16px; border: 2px solid {GetOSColor(server.OperatingSystem)};")">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <h3 class="mb-1" style="color:var(--acento-oscuro);">
+                        <i class="bi @(server.OperatingSystem == "Linux" ? "bi-ubuntu" : "bi-windows")" style="margin-right:8px;"></i>
+                        @server.Name
+                    </h3>
+                    <p class="mb-0 text-muted">
+                        <FluentIcon Value="@(new Icons.Regular.Size16.Globe())" Style="margin-right:4px;" />
+                        <strong>@server.Host : @server.Port</strong> &nbsp; | &nbsp; @server.OperatingSystem
+                        @if (server.UseTls)
+                        {
+                            <FluentBadge Appearance="Appearance.Accent" Style="margin-left:6px;">TLS</FluentBadge>
+                        }
+                    </p>
+                </div>
+                <div class="col-md-6 text-end">
+                    <FluentBadge Appearance="@(isConnected ? Appearance.Accent : Appearance.Lightweight)" Style="font-size:0.9em; padding:6px 12px;">
+                        @(isConnected ? "Conectado" : "Desconectado")
+                    </FluentBadge>
+                </div>
+            </div>
+        </FluentCard>
+
+
+        <!-- Cabecera: Info Docker -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        @if (dockerInfo != null)
+        {
+            <FluentCard Style="margin-bottom:16px;">
+                <h5 style="color:var(--acento); margin-bottom:12px;">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Info())" Style="margin-right:6px;" />
+                    Información de Docker Engine
+                </h5>
+                <div class="d-flex flex-wrap" style="gap: 1rem 2.5rem;">
+                    <div>
+                        <div class="stat-label">Versión Docker</div>
+                        <div class="stat-value">@dockerInfo.DockerVersion</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">API</div>
+                        <div class="stat-value">@dockerInfo.ApiVersion</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">SO / Arch</div>
+                        <div class="stat-value">@dockerInfo.OSType / @dockerInfo.Architecture</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Contenedores</div>
+                        <div class="stat-value" style="color:#155724;">@dockerInfo.RunningContainers en ejecución / @dockerInfo.TotalContainers total</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Imágenes</div>
+                        <div class="stat-value">@dockerInfo.TotalImages</div>
+                    </div>
+                    <div>
+                        <div class="stat-label">Recursos</div>
+                        <div class="stat-value">@dockerInfo.CPUs CPUs · @dockerInfo.MemoryFormatted</div>
+                    </div>
+                </div>
+            </FluentCard>
+        }
+        else if (connectionAttempted && isConnected == false)
+        {
+            <FluentMessageBar Title="Sin conexión" Intent="MessageIntent.Warning" Style="margin-bottom:16px;">
+                No se pudo conectar al Docker Engine en @server.Host:@server.Port.
+                Verifica que Docker esté instalado y el daemon acepte conexiones TCP.
+            </FluentMessageBar>
+        }
+
+        <!-- Botones de Imagenes, Volumenes y Redes -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        <div class="d-flex gap-2 mb-3">
+            <FluentButton Appearance="Appearance.Outline" OnClick="@(() => Navigation.NavigateTo($"/docker/server/images/{ServerId}"))" Disabled="@(!_canImagesRead)">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Image())" Slot="start" />
+                Imágenes
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Outline" OnClick="@(() => Navigation.NavigateTo($"/docker/server/volumes/{ServerId}"))" Disabled="@(!_canVolumesRead)">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Database())" Slot="start" />
+                Volúmenes
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Outline" OnClick="@(() => Navigation.NavigateTo($"/docker/server/networks/{ServerId}"))" Disabled="@(!_canNetworksRead)">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Globe())" Slot="start" />
+                Redes
+            </FluentButton>
+        </div>
+
+        <hr />
+
+        <!-- Contenedores + Botones de acciones contenedores -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 style="color:var(--acento-oscuro); margin:0;">
+                <FluentIcon Value="@(new Icons.Regular.Size24.BoxMultiple())" Style="margin-right:6px;" />
+                Contenedores (@(containers?.Count ?? 0))
+            </h4>
+            <div class="d-flex gap-2">
+                <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshContainers" Loading="@isRefreshing">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.ArrowSync())" Slot="start" />
+                    Refrescar
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Accent" OnClick="@NewContainer" Disabled="@(!isConnected || !_canContainersWrite)">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+                    Nuevo Contenedor
+                </FluentButton>
+            </div>
+        </div>
+
+
+        <!-- Crear contenedores -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        @if (IsOnNewContainer)
+        {
+            <FluentCard Style="margin-bottom:16px; border: 2px solid var(--Amarillo);">
+                <h5 style="color:var(--Dark-Amarillo); margin-bottom:12px;">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Style="margin-right:6px;" />
+                    Crear nuevo contenedor
+                </h5>
+
+                <EditForm Model="@newContainer" OnValidSubmit="@CreateContainer">
+                    <DataAnnotationsValidator />
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Nombre del contenedor</label>
+                            <FluentTextField @bind-Value="newContainer.Name" Placeholder="mi-contenedor" Style="width:100%;" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Imagen</label>
+                            <FluentTextField @bind-Value="newContainer.Image" Placeholder="nginx:latest" Style="width:100%;" />
+                            <ValidationMessage For="@(() => newContainer.Image)" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-bold">Puertos (host:container)</label>
+                            <FluentTextField @bind-Value="newContainer.Ports" Placeholder="8080:80, 443:443" Style="width:100%;" />
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mt-1">
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Variables de entorno (KEY=VALUE, una por línea)</label>
+                            <div @onkeydown:stopPropagation="true">
+                                <FluentTextArea @bind-Value="newContainer.EnvVars" Placeholder="MYSQL_ROOT_PASSWORD=secret&#10;MYSQL_DATABASE=mydb" Rows="3"  Style="width:100%;" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-bold">Comando (opcional)</label>
+                            <FluentTextField @bind-Value="newContainer.Command" Placeholder="/bin/bash" Style="width:100%;" />
+                            <div class="mt-2">
+                                <FluentCheckbox @bind-Value="newContainer.AutoStart" Label="Iniciar automáticamente tras crear" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isCreating" Disabled="@(isCreating || !_canContainersWrite)">
+                            <FluentIcon Value="@(new Icons.Regular.Size20.Play())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+                            Crear Contenedor
+                        </FluentButton>
+                        <FluentButton Appearance="Appearance.Stealth" OnClick="@CancelNewContainer">
+                            Cancelar
+                        </FluentButton>
+                    </div>
+                </EditForm>
+            </FluentCard>
+        }
+
+
+        <!-- Grid de contenedores -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        @if (containers != null && containers.Count > 0)
+        {
+            <FluentDataGrid Items="@containers!.AsQueryable()" TGridItem="ContainerListResponse"
+                            Style="width:100%;" Pagination="@pagination" GridTemplateColumns="1.5fr 1.5fr 1fr 1.5fr 1.5fr 1.5fr 2fr" MultiLine RowSize="DataGridRowSize.Medium">
+
+                <PropertyColumn Title="Nombre" Property="@(c => GetContainerName(c))" Sortable="true" />
+                <PropertyColumn Title="Imagen" Property="@(c => c.Image)" Sortable="true" />
+                <TemplateColumn Title="Estado">
+                    <FluentBadge Appearance="@(GetStateAppearance(context.State))" Style="@GetStateBadgeStyle(context.State)">
+                        @context.State
+                    </FluentBadge>
+                </TemplateColumn>
+                <TemplateColumn Title="Puertos">
+                    @if (context.Ports != null)
+                    {
+                        @foreach (var port in context.Ports.Where(p => p.PublicPort > 0))
+                        {
+                            <FluentBadge Style="margin-right:4px; margin-bottom:2px;">
+                                @port.PublicPort:@port.PrivatePort/@port.Type
+                            </FluentBadge>
+                        }
+                    }
+                </TemplateColumn>
+                <PropertyColumn Title="Creado" Property="@(c => FormatDate(c.Created))" Sortable="true" />
+                <TemplateColumn Title="CPU / Memoria">
+                    @if (containerStats.TryGetValue(context.ID, out var stats))
+                    {
+                        <div style="font-size:0.8em;">
+                            <div>CPU: <strong>@stats.CpuPercent%</strong></div>
+                            <div>Mem: <strong>@stats.MemoryUsageMb MB</strong> (@stats.MemoryPercent%)</div>
+                        </div>
+                    }
+                    else
+                    {
+                        <span class="text-muted">—</span>
+                    }
+                </TemplateColumn>
+                <TemplateColumn Title="Acciones">
+                    <div class="d-flex gap-1">
+                        @if (context.State == "running")
+                        {
+                            <!-- Pausar -->
+                            <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                          Title="Pausar" OnClick="@(() => PauseContainer(context.ID))" Disabled="@(!_canContainersWrite)">
+                                <FluentIcon Value="@(new Icons.Regular.Size16.Pause())" Color="Color.Warning" />
+                            </FluentButton>
+
+                            <!-- Detener -->
+                            <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                          Title="Detener" OnClick="@(() => StopContainer(context.ID))" Disabled="@(!_canContainersWrite)">
+                                <FluentIcon Value="@(new Icons.Regular.Size16.Stop())" Color="Color.Warning" />
+                            </FluentButton>
+
+                            <!-- Reiniciar -->
+                            <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                          Title="Reiniciar" OnClick="@(() => RestartContainer(context.ID))" Disabled="@(!_canContainersWrite)">
+                                <FluentIcon Value="@(new Icons.Regular.Size16.ArrowSync())" Color="Color.Accent" />
+                            </FluentButton>
+                        }
+                        else if (context.State == "paused")
+                        {
+                            <!-- Reanudar -->
+                            <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                          Title="Reanudar" OnClick="@(() => UnpauseContainer(context.ID))" Disabled="@(!_canContainersWrite)">
+                                <FluentIcon Value="@(new Icons.Regular.Size16.Play())" Color="Color.Success" />
+                            </FluentButton>
+                        }
+                        else
+                        {
+                            <!-- Iniciar -->
+                            <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                          Title="Iniciar" OnClick="@(() => StartContainer(context.ID))" Disabled="@(!_canContainersWrite)">
+                                <FluentIcon Value="@(new Icons.Regular.Size16.Play())" Color="Color.Success" />
+                            </FluentButton>
+                        }
+                        
+                        <!-- Container Detail -->
+                        <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                      Title="Ver detalle" OnClick="@(() => ShowContainerDetail(context.ID, GetContainerName(context)))">
+                            <FluentIcon Value="@(new Icons.Regular.Size16.Eye())" />
+                        </FluentButton>
+
+                        <!-- Container Logs -->
+                        <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                      Title="Ver logs" OnClick="@(() => ShowContainerLogs(context.ID, GetContainerName(context)))">
+                            <FluentIcon Value="@(new Icons.Regular.Size16.DocumentText())" />
+                        </FluentButton>
+
+                        <!-- Container Delete -->
+                        <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline"
+                                      Title="Eliminar" OnClick="@(() => RemoveContainer(context.ID, GetContainerName(context)))" Disabled="@(!_canContainersWrite)">
+                            <FluentIcon Value="@(new Icons.Regular.Size16.Delete())" Color="Color.Error" />
+                        </FluentButton>
+                    </div>
+                </TemplateColumn>
+
+            </FluentDataGrid>
+            <FluentPaginator State="@pagination" />
+        }
+        else if (isConnected)
+        {
+            <FluentCard Style="text-align:center; padding:30px;">
+                <FluentIcon Value="@(new Icons.Regular.Size24.Box())" Color="Color.Neutral" />
+                <h5 class="mt-3" style="color:#6c757d;">No hay contenedores en este servidor</h5>
+                <p class="text-muted">Crea un nuevo contenedor usando el botón superior.</p>
+            </FluentCard>
+        }
+
+
+        <!-- Detalle del contenedor -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        @if (isLoadingDetails || containerDetails != null)
+        {
+            <FluentCard Style="margin-top:16px; border: 2px solid var(--accent-one);">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 style="color:var(--accent-one); margin:0;">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Info())" Style="margin-right:6px;" />
+                        Detalle de @detailsContainerName
+                    </h5>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="@CloseDetails">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())" />
+                    </FluentButton>
+                </div>
+
+                @if (isLoadingDetails)
+                {
+                    <FluentProgressRing /> <span class="ms-2">Cargando detalles...</span>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr><td class="fw-bold" style="width:140px;">ID</td><td style="font-family:monospace; font-size:0.85em;">@containerDetails?.ID[..12]</td></tr>
+                                <tr><td class="fw-bold">Nombre</td><td>@containerDetails?.Name?.TrimStart('/')</td></tr>
+                                <tr><td class="fw-bold">Imagen</td><td>@containerDetails?.Config?.Image</td></tr>
+                                <tr><td class="fw-bold">Estado</td><td>@containerDetails?.State?.Status</td></tr>
+                                <tr><td class="fw-bold">Creado</td><td>@containerDetails?.Created.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss")</td></tr>
+                                <tr><td class="fw-bold">Iniciado</td><td>@FormatDateAt(containerDetails?.State?.StartedAt!)</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-sm">
+                                <tr><td class="fw-bold">Plataforma</td><td>@containerDetails?.Platform</td></tr>
+                                <tr><td class="fw-bold" style="width:140px;">Comando</td><td style="font-family:monospace; font-size:0.85em;">@string.Join(" ", containerDetails?.Config?.Cmd ?? Array.Empty<string>())</td></tr>
+                                <tr><td class="fw-bold">Hostname</td><td>@containerDetails?.Config?.Hostname</td></tr>
+                                <tr><td class="fw-bold">WorkingDir</td><td>@containerDetails?.Config?.WorkingDir</td></tr>
+                                <tr>
+                                    <td class="fw-bold">Puertos</td>
+                                    <td>
+                                        @if (containerDetails?.NetworkSettings?.Ports != null)
+                                        {
+                                            @foreach (var port in containerDetails?.NetworkSettings?.Ports!)
+                                            {
+                                                <div>@port.Key → @string.Join(", ", port.Value?.Select(v => $"{v.HostIP}:{v.HostPort}") ?? Array.Empty<string>())</div>
+                                            }
+                                        }
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="row g-0">
+                        <div class="col-md-12">
+                            <p class="fw-bold">Variables Entorno</p>
+                            <p style="font-size:0.8em; max-height:120px; overflow-y:auto; display:block;">
+                                @if (containerDetails?.Config?.Env != null)
+                                {
+                                    @foreach (var env in containerDetails?.Config?.Env?.Take(10)!)
+                                    {
+                                        <div style="font-family:monospace;">@env</div>
+                                    }
+                                    @if (containerDetails?.Config.Env.Count > 10)
+                                    {
+                                        <div class="text-muted">...y @(containerDetails?.Config.Env.Count - 10) más</div>
+                                    }
+                                }
+                            </p>
+                        </div>
+                    </div>
+                }
+            </FluentCard>
+        }
+
+
+        <!-- Logs del contenedor -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        @if (isLoadingLogs || containerLogs != null)
+        {
+            <FluentCard Style="margin-top:16px; border: 2px solid var(--accent-two);">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h5 style="color:var(--accent-two); margin:0;">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.DocumentText())" Style="margin-right:6px;" />
+                        Logs de @logsContainerName
+                    </h5>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="@CloseLogs">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Dismiss())" />
+                    </FluentButton>
+                </div>
+
+                @if (isLoadingLogs)
+                {
+                    <FluentProgressRing /> <span class="ms-2">Cargando logs...</span>
+                }
+                else
+                {
+                    <!-- Caja oscura estilo terminal. 'white-space: pre-wrap' respeta los saltos de línea. -->
+                    <pre style="background:#1e1e1e; color:#d4d4d4; padding:12px; border-radius:6px;
+                                max-height:400px; overflow:auto; font-size:0.8em; white-space:pre-wrap;">@containerLogs</pre>
+                }
+            </FluentCard>
+        }
+
+    }
+</div>
+
+
+@code {
+    [Parameter] public int ServerId { get; set; }
+
+    private DockerServer? server;
+    private bool isLoading = true;
+    private string? authUserId;
+
+    private DockerEngineInfo? dockerInfo;
+    private IList<ContainerListResponse>? containers;
+    private Dictionary<string, ContainerStats> containerStats = new();
+
+    private bool _canContainersWrite;
+    private bool _canImagesRead;
+    private bool _canVolumesRead;
+    private bool _canNetworksRead;
+
+    private bool isConnecting = false;
+    private bool isConnected = false;
+    private bool connectionAttempted = false;
+
+    PaginationState pagination = new PaginationState { ItemsPerPage = 15 };
+
+
+    private void GoBack() => Navigation.NavigateTo("/docker/serverlist");
+    private string GetOSColor(string os) => os == "Linux" ? "var(--accent-five)" : "var(--accent-one)";
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        authUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        _canContainersWrite = authState.User.HasPermission("containers.write");
+        _canImagesRead = authState.User.HasPermission("images.read");
+        _canVolumesRead = authState.User.HasPermission("volumes.read");
+        _canNetworksRead = authState.User.HasPermission("networks.read");
+
+        if (string.IsNullOrEmpty(authUserId))
+        {
+            isLoading = false;
+            return;
+        }
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Servidor desde Base de Datos
+            server = await ServerService.GetServerById(ServerId, authUserId!);
+            isLoading = false;
+            StateHasChanged();
+
+            // Informacion del servidor desde Docker.
+            if (firstRender && server != null)
+            {
+                isConnecting = true;
+                StateHasChanged();
+
+                await LoadDockerData();
+
+                connectionAttempted = true;
+                isConnecting = false;
+                StateHasChanged();
+            }
+
+        }
+
+    }
+
+    private async Task LoadDockerData()
+    {
+        if (server == null) return;
+
+        var (success, message) = await DockerService.TestConnection(server);
+        isConnected = success;
+
+        if (isConnected)
+        {
+            dockerInfo = await DockerService.GetDockerInfo(server);
+            containers = (await DockerService.GetContainers(server)).ToList();
+
+            // Estadísticas (CPU/memoria) solo de los contenedores en ejecución.
+            containerStats.Clear();
+            foreach (var c in containers.Where(c => c.State == "running"))
+            {
+                var stats = await DockerService.GetContainerStats(server, c.ID);
+                if (stats != null)
+                {
+                    containerStats[c.ID] = stats;
+                }
+            }
+        }
+
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private bool isRefreshing = false;
+
+    private async Task RefreshContainers()
+    {
+        isRefreshing = true;
+        StateHasChanged();
+
+        await LoadDockerData();
+
+        isRefreshing = false;
+        StateHasChanged();
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Nuevo Container
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private ContainerView newContainer = new();
+    private bool IsOnNewContainer = false;
+    private bool isCreating = false;
+
+    private void NewContainer()
+    {
+        newContainer = new ContainerView();
+        IsOnNewContainer = true;
+        isCreating = false;
+        StateHasChanged();
+    }
+
+    private async Task CreateContainer()
+    {
+        if (!_canContainersWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+
+        isCreating = true;
+        StateHasChanged();
+
+        var parameters = new CreateContainerParameters
+        {
+            Image = newContainer.Image.Trim(),
+            Name = string.IsNullOrWhiteSpace(newContainer.Name) ? null : newContainer.Name.Trim(),
+            Env = ParseEnvVars(newContainer.EnvVars),
+            HostConfig = new HostConfig
+            {
+                PortBindings = ParsePortBindings(newContainer.Ports)
+            },
+            ExposedPorts = ParseExposedPorts(newContainer.Ports)
+        };
+
+        if (!string.IsNullOrWhiteSpace(newContainer.Command))
+        {
+            parameters.Cmd = newContainer.Command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        var (success, message, containerId) = await DockerService.CreateContainer(server, parameters);
+
+        if (success && newContainer.AutoStart && containerId != null)
+        {
+            await DockerService.StartContainer(server, containerId);
+            ToastService.ShowSuccess("Contenedor creado e iniciado correctamente");
+        }
+        else if (success)
+        {
+            ToastService.ShowSuccess("Contenedor creado correctamente");
+        }
+        else
+        {
+            ToastService.ShowError(message);
+        }
+
+        IsOnNewContainer = false;
+        isCreating = false;
+        await RefreshContainers();
+    }
+
+    private void CancelNewContainer()
+    {
+        newContainer = null!;
+        IsOnNewContainer = false;
+        isCreating = false; 
+        StateHasChanged();
+    }
+
+    private static IList<string> ParseEnvVars(string input)
+    {
+        var result = new List<string>();
+
+        if (!string.IsNullOrWhiteSpace(input))
+        {
+            result = input.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(l => l.Contains('='))
+                    .ToList();
+        }
+
+        return result;
+
+    }
+
+    private static IDictionary<string, IList<PortBinding>> ParsePortBindings(string input)
+    {
+        var result = new Dictionary<string, IList<PortBinding>>();
+        if (string.IsNullOrWhiteSpace(input)) return result;
+
+        foreach (var mapping in input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = mapping.Split(':');
+            if (parts.Length == 2)
+            {
+                var containerPort = $"{parts[1].Trim()}/tcp";
+                result[containerPort] = new List<PortBinding>
+                {
+                    new PortBinding { HostPort = parts[0].Trim() }
+                };
+            }
+        }
+        return result;
+    }
+
+    private static IDictionary<string, EmptyStruct> ParseExposedPorts(string input)
+    {
+        var result = new Dictionary<string, EmptyStruct>();
+        if (string.IsNullOrWhiteSpace(input)) return result;
+
+        foreach (var mapping in input.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            var parts = mapping.Split(':');
+            if (parts.Length == 2)
+            {
+                result[$"{parts[1].Trim()}/tcp"] = default;
+            }
+        }
+        return result;
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Acciones sobre contenedores
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private async Task StartContainer(string containerId)
+    {
+        if (!_canContainersWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+        var (success, message) = await DockerService.StartContainer(server, containerId);
+        ToastService.ShowInfo(success ? "Contenedor iniciado" : message);
+        await RefreshContainers();
+    }
+
+    private async Task StopContainer(string containerId)
+    {
+        if (!_canContainersWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+        var (success, message) = await DockerService.StopContainer(server, containerId);
+        ToastService.ShowInfo(success ? "Contenedor detenido" : message);
+        await RefreshContainers();
+    }
+
+    private async Task RestartContainer(string containerId)
+    {
+        if (!_canContainersWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+        var (success, message) = await DockerService.RestartContainer(server, containerId);
+        ToastService.ShowInfo(success ? "Contenedor reiniciado" : message);
+        await RefreshContainers();
+    }
+
+    private async Task PauseContainer(string containerId)
+    {
+        if (!_canContainersWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+        var (success, message) = await DockerService.PauseContainer(server, containerId);
+        ToastService.ShowInfo(success ? "Contenedor pausado" : message);
+        await RefreshContainers();
+    }
+
+    private async Task UnpauseContainer(string containerId)
+    {
+        if (!_canContainersWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+        var (success, message) = await DockerService.UnPauseContainer(server, containerId);
+        ToastService.ShowInfo(success ? "Contenedor reanudado" : message);
+        await RefreshContainers();
+    }
+
+    private async Task RemoveContainer(string containerId, string containerName)
+    {
+        if (!_canContainersWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+
+        // Dialogo de confirmación de borrado.
+        var dlg = await DialogService.ShowConfirmationAsync($"¿Seguro que quieres borrar el contenedor <strong>{containerName}</strong>?", "Borrar", "Cancelar", "Confirmar borrado");
+        var result = await dlg.Result;
+        if (result.Cancelled) return;
+
+        var (success, message) = await DockerService.RemoveContainer(server, containerId);
+        if (success)
+            ToastService.ShowSuccess($"Contenedor '{containerName}' eliminado");
+        else
+            ToastService.ShowError(message);
+        await RefreshContainers();
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Container Details
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private ContainerInspectResponse? containerDetails;
+    private string? detailsContainerName;
+    private bool isLoadingDetails = false;
+
+    private async Task ShowContainerDetail(string containerId, string containerName)
+    {
+        if (server == null) return;
+
+        isLoadingDetails = true;
+        StateHasChanged();
+
+        detailsContainerName = containerName;
+        containerDetails = null;
+
+        // Detalles del contenedor
+        containerDetails = await DockerService.GetContainerDetails(server, containerId);
+
+        isLoadingDetails = false;
+        StateHasChanged();
+    }
+
+    private void CloseDetails()
+    {
+        containerDetails = null;
+        StateHasChanged();
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Container Logs
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private string? containerLogs;
+    private string? logsContainerName;
+    private bool isLoadingLogs = false;
+
+    private async Task ShowContainerLogs(string containerId, string containerName)
+    {
+        if (server == null) return;
+
+        isLoadingLogs = true;
+        StateHasChanged();
+
+        logsContainerName = containerName;
+        containerLogs = null;
+
+        // Ultimas 200 líneas de log del contenedor.
+        containerLogs = await DockerService.GetContainerLogs(server, containerId, 200);
+
+        isLoadingLogs = false;
+        StateHasChanged();
+    }
+
+    private void CloseLogs()
+    {
+        containerLogs = null;
+        StateHasChanged();
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+
+    private static string GetContainerName(ContainerListResponse c) => c.Names?.FirstOrDefault()?.TrimStart('/') ?? c.ID[..12];
+
+    private static string FormatDate(DateTime dt) => dt > DateTime.MinValue ? dt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") : "-";
+    private static string FormatDateAt(string date) 
+    {
+        if (!DateTimeOffset.TryParse(date, System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.RoundtripKind, out var dto) || dto.Year <= 1)
+            return "—";
+        return FormatDate(dto.Date);
+    }
+
+    private static Appearance GetStateAppearance(string state)
+    {
+        switch (state) {
+            case "running": return Appearance.Accent;
+            case "exited": return Appearance.Lightweight;
+            case "paused": return Appearance.Neutral;
+            default: return Appearance.Lightweight;
+        }
+    }
+
+    private static string GetStateBadgeStyle(string state)
+    {
+        switch (state) {
+            case "running": return "background:#d4edda; color:#155724;";
+            case "exited": return "background:#f8d7da; color:#721c24;";
+            case "paused": return "background:#fff3cd; color:#856404;";
+            default : return "";
+        }
+    }
+
+
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private class ContainerView
+    {
+        public string Name { get; set; } = "";
+
+        [Required(ErrorMessage = "La imagen es obligatoria")]
+        public string Image { get; set; } = "";
+
+        public string Ports { get; set; } = "";
+        public string EnvVars { get; set; } = "";
+        public string Command { get; set; } = "";
+        public bool AutoStart { get; set; } = true;
+    }
+
+}

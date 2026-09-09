@@ -1,0 +1,102 @@
+@page "/docker/doc-apendice-tls"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Apéndice B · Certificados TLS de Docker — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-apendice-resumen" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Resumen comparativo de comandos</FluentAnchor>
+            <span class="doc-progress">23 / 23</span>
+            <span></span>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Apéndice B</h1>
+            <h2 class="doc-title">Certificados TLS de Docker</h2>
+        </header>
+
+        <article class="doc-content">
+            <h2 class="doc-h2">Conexión segura con el Docker Engine publicado en Internet</h2>
+            <p class="doc-p">Cuando el Docker Engine se expone por TCP para gestionarlo en remoto, y más aún si el servidor está publicado en Internet, la conexión debe protegerse con TLS (Transport Layer Security, "seguridad de la capa de transporte"). El daemon de Docker da acceso de administrador (root) a la máquina anfitriona, así que dejar el puerto abierto sin cifrar ni autenticar sería un riesgo grave. Docker lo resuelve con TLS mutuo (mTLS), además de cifrar el tráfico, servidor y cliente se autentican entre sí mediante certificados. Este apéndice explica qué certificado interviene en cada extremo y cómo generarlos.</p>
+
+            <h2 class="doc-h2">Qué es cada certificado</h2>
+            <p class="doc-p">En un esquema de TLS mutuo intervienen varios ficheros, todos relacionados con una misma Autoridad Certificadora (CA) que los avala:</p>
+            <table class="doc-table">
+                <caption>Ficheros que intervienen en la conexión TLS mutua con Docker</caption>
+                <thead>
+                    <tr>
+                        <th>Fichero</th>
+                        <th>Función</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>ca.pem</td><td>Certificado público de la Autoridad Certificadora (CA). Es la raíz de confianza: permite a cada extremo verificar que el certificado del otro es legítimo. Se distribuye tanto al servidor como al cliente.</td></tr>
+                    <tr><td>ca-key.pem</td><td>Clave privada de la CA. Firma los certificados del servidor y del cliente. Es el fichero más sensible: no se distribuye y se guarda a buen recaudo.</td></tr>
+                    <tr><td>server-cert.pem / server-key.pem</td><td>Certificado y clave privada del Docker Engine (servidor). El daemon los presenta para demostrar su identidad y cifrar el canal. La clave nunca sale del servidor.</td></tr>
+                    <tr><td>cert.pem / key.pem</td><td>Certificado y clave privada del cliente (WebDocker). El cliente los presenta para autenticarse ante el daemon. La clave nunca sale del cliente.</td></tr>
+                </tbody>
+            </table>
+            <p class="doc-p">La regla de oro: las claves privadas (los ficheros *-key.pem) nunca se comparten ni salen de la máquina donde se usan; solo se distribuyen los certificados (ca.pem, server-cert.pem, cert.pem).</p>
+
+            <h2 class="doc-h2">Requisitos previos</h2>
+            <p class="doc-p">• OpenSSL instalado en la máquina donde se generan los certificados (viene de serie en Linux; en Windows, con Git Bash o con WSL).</p>
+            <p class="doc-p">• El dominio público o la IP pública del servidor donde corre el Docker Engine (se incluirá en el certificado del servidor).</p>
+            <p class="doc-p">• Acceso al servidor para copiar los certificados y editar la configuración del daemon.</p>
+            <p class="doc-p">• El puerto 2376/TCP abierto en el firewall (es el puerto estándar de Docker sobre TLS; el 2375 es sin cifrar).</p>
+
+            <h2 class="doc-h2">Paso 1. Crear la Autoridad Certificadora (CA)</h2>
+            <p class="doc-p">La CA es la raíz de confianza: firma tanto el certificado del servidor como el del cliente, y su certificado público permite que cada extremo verifique al otro. Se genera una clave privada (protegida con contraseña) y, a partir de ella, el certificado público de la CA:</p>
+            <pre class="doc-console">openssl genrsa -aes256 -out ca-key.pem 4096</pre>
+            <pre class="doc-console">openssl req -new -x509 -days 365 -key ca-key.pem -sha256 -out ca.pem</pre>
+            <p class="doc-p">El segundo comando solicita algunos datos (país, organización, etc.); el más importante es el Common Name (CN), que identifica a la CA.</p>
+
+            <h2 class="doc-h2">Paso 2. Certificado del servidor (Docker Engine)</h2>
+            <p class="doc-p">Este certificado identifica al daemon ante los clientes. Es imprescindible incluir en él, como Subject Alternative Name (SAN), el dominio y/o la IP pública del servidor; si no coinciden con la dirección por la que se conecta el cliente, la validación TLS fallará.</p>
+            <pre class="doc-console">openssl genrsa -out server-key.pem 4096</pre>
+            <pre class="doc-console">openssl req -subj "/CN=midominio.com" -sha256 -new -key server-key.pem -out server.csr</pre>
+            <pre class="doc-console">echo subjectAltName = DNS:midominio.com,IP:203.0.113.10 &gt; extfile.cnf</pre>
+            <pre class="doc-console">echo extendedKeyUsage = serverAuth &gt;&gt; extfile.cnf</pre>
+            <pre class="doc-console">openssl x509 -req -days 365 -sha256 -in server.csr -CA ca.pem -CAkey ca-key.pem \ <br /> -CAcreateserial -out server-cert.pem -extfile extfile.cnf</pre>
+            <p class="doc-p">Hay que sustituir midominio.com y 203.0.113.10 por el dominio y la IP pública reales del servidor.</p>
+
+            <h2 class="doc-h2">Paso 3. Certificado del cliente (WebDocker)</h2>
+            <p class="doc-p">Este certificado identifica a quien se conecta al daemon, en este proyecto, la aplicación WebDocker. Se marca con extendedKeyUsage = clientAuth para que solo sirva como credencial de cliente:</p>
+            <pre class="doc-console">openssl genrsa -out key.pem 4096</pre>
+            <pre class="doc-console">openssl req -subj "/CN=webdocker-client" -new -key key.pem -out client.csr</pre>
+            <pre class="doc-console">echo extendedKeyUsage = clientAuth &gt; extfile-client.cnf</pre>
+            <pre class="doc-console">openssl x509 -req -days 365 -sha256 -in client.csr -CA ca.pem -CAkey ca-key.pem \ <br /> -CAcreateserial -out cert.pem -extfile extfile-client.cnf</pre>
+
+            <h2 class="doc-h2">Paso 4. Configurar el Docker Engine para TLS</h2>
+            <p class="doc-p">Se copian ca.pem, server-cert.pem y server-key.pem al servidor (por ejemplo a /etc/docker/certs/) y se configura el daemon para que exija TLS y escuche en el puerto 2376.</p>
+            <p class="doc-p">En /etc/docker/daemon.json:</p>
+            <pre class="doc-console">{ <br /> "hosts": ["unix:///var/run/docker.sock", "tcp://0.0.0.0:2376"], <br /> "tlsverify": true, <br /> "tlscacert": "/etc/docker/certs/ca.pem", <br /> "tlscert": "/etc/docker/certs/server-cert.pem", <br /> "tlskey": "/etc/docker/certs/server-key.pem" <br /> }</pre>
+            <p class="doc-p">Con tlsverify en true, el daemon solo acepta clientes que presenten un certificado firmado por la misma CA. Después de editar el daemon.json, recargar systemd y reiniciar el servicio.</p>
+            <pre class="doc-console">sudo systemctl daemon-reload</pre>
+            <pre class="doc-console">sudo systemctl restart docker</pre>
+
+            <h2 class="doc-h2">Paso 5. Probar la conexión</h2>
+            <p class="doc-p">Desde una máquina cliente, con los ficheros ca.pem, cert.pem y key.pem, se comprueba que el daemon responde por TLS:</p>
+            <pre class="doc-console">docker --tlsverify --tlscacert=ca.pem --tlscert=cert.pem --tlskey=key.pem \ <br /> -H=midominio.com:2376 version</pre>
+            <p class="doc-p">Si devuelve la versión del cliente y del servidor, la autenticación mutua funciona correctamente.</p>
+
+            <h2 class="doc-h2">Uso en WebDocker</h2>
+            <p class="doc-p">WebDocker actúa como cliente del daemon, de modo que necesita tres de estos ficheros: el certificado de la CA (ca.pem), el certificado del cliente (cert.pem) y su clave privada (key.pem). Al registrar un servidor Docker en la aplicación con la casilla TLS activada, se pega el contenido de esos tres ficheros PEM en los campos correspondientes; se almacenan en la base de datos (campos CaCertPem, ClientCertPem y ClientKeyPem de la entidad DockerServer). Con ellos, WebDocker valida el certificado del servidor contra la CA y presenta su propio certificado de cliente, estableciendo la conexión mTLS con el Docker Engine en el puerto 2376.</p>
+
+            <h2 class="doc-h2">Buenas prácticas</h2>
+            <p class="doc-p">• Proteger las claves privadas (*-key.pem) con permisos restrictivos y no subirlas nunca al repositorio de código.</p>
+            <p class="doc-p">• Usar un CN/SAN que coincida exactamente con el dominio o la IP por la que se accede al servidor.</p>
+            <p class="doc-p">• Renovar los certificados antes de que caduquen (en los ejemplos, 365 días).</p>
+            <p class="doc-p">• Abrir el puerto 2376 solo a las direcciones que lo necesiten (firewall), incluso con TLS activo.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-apendice-resumen" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Resumen comparativo de comandos</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <span></span>
+        </div>
+
+    </FluentCard>
+</div>

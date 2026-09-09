@@ -1,0 +1,222 @@
+@page "/docker/servers/{ServerId:int}/images-load"
+@using System.IO
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using global::Docker.DotNet.Models
+@using WebDocker.Data
+@using WebDocker.Services
+
+@attribute [Authorize(Roles = "Administrador")]
+@rendermode InteractiveServer
+
+@inject DockerServerService ServerService
+@inject DockerEngineService DockerEngine
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IToastService ToastService
+
+<PageTitle>Imágenes - @(server?.Name ?? "Servidor")</PageTitle>
+
+<div class="container-fluid px-4 py-3">
+
+    <div class="mb-3">
+        <FluentButton Appearance="Appearance.Stealth" OnClick="@GoBack">
+            Volver al servidor
+        </FluentButton>
+    </div>
+
+    @if (isLoading)
+    {
+        <FluentProgressRing />
+    }
+    else if (server == null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">
+            Servidor no encontrado o sin permisos.
+        </FluentMessageBar>
+    }
+    else
+    {
+        <h2>Imágenes de @server.Name</h2>
+
+        <div class="d-flex gap-2 my-3">
+            <FluentTextField @bind-Value="pullImageName" Placeholder="imagen:tag (ej. nginx:latest)" />
+            <FluentButton Appearance="Appearance.Accent" OnClick="@PullImage" Disabled="@(isPulling || !_canWrite)">
+                @(isPulling ? "Descargando..." : "Descargar imagen")
+            </FluentButton>
+        </div>
+
+        @* Cargar imagen desde un fichero .tar (equivalente a 'docker load'). *@
+        <div class="d-flex gap-2 my-3 align-items-center">
+            <label class="fw-bold mb-0">Cargar desde .tar:</label>
+            <InputFile OnChange="@OnTarSelected" accept=".tar" disabled="@(isLoadingTar || !_canWrite)" />
+            @if (isLoadingTar)
+            {
+                <FluentProgressRing style="width:20px; height:20px;" />
+                <span class="text-muted">Cargando imagen...</span>
+            }
+        </div>
+
+        @if (images.Count == 0)
+        {
+            <FluentMessageBar Intent="MessageIntent.Info">No hay imágenes.</FluentMessageBar>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Tags</th>
+                        <th>ID</th>
+                        <th>Tamaño</th>
+                        <th>Creada</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var img in images)
+                    {
+                        <tr>
+                            <td>@(img.RepoTags != null && img.RepoTags.Count > 0 ? string.Join(", ", img.RepoTags) : "<sin tag>")</td>
+                            <td><small>@ShortId(img.ID)</small></td>
+                            <td>@FormatSize(img.Size)</td>
+                            <td>@img.Created.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>
+                                <FluentButton Appearance="Appearance.Outline" OnClick="@(() => DeleteImage(img.ID))" Disabled="@(!_canWrite)">
+                                    Eliminar
+                                </FluentButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int ServerId { get; set; }
+
+    private DockerServer? server;
+    private IList<ImagesListResponse> images = new List<ImagesListResponse>();
+    private bool isLoading = true;
+    private bool isPulling = false;
+    private bool isLoadingTar = false;
+    private string pullImageName = string.Empty;
+    private bool _canWrite;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var userId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+        {
+            Navigation.NavigateTo("/Account/Login");
+            return;
+        }
+
+        _canWrite = authState.User.HasPermission("images.write");
+
+        server = await ServerService.GetServerByIdAsync(ServerId, userId);
+        if (server != null)
+        {
+            await ReloadImages();
+        }
+        isLoading = false;
+    }
+
+    private async Task ReloadImages()
+    {
+        if (server == null) return;
+        images = await DockerEngine.GetImagesAsync(server);
+    }
+
+    private async Task PullImage()
+    {
+        if (!_canWrite) { ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); return; }
+        if (server == null || string.IsNullOrWhiteSpace(pullImageName)) return;
+
+        isPulling = true;
+        var (success, message) = await DockerEngine.PullImageAsync(server, pullImageName);
+        isPulling = false;
+
+        ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
+        if (success)
+        {
+            pullImageName = string.Empty;
+            await ReloadImages();
+        }
+    }
+
+    // Sube un fichero .tar (hecho con 'docker save') y lo carga en el host Docker remoto.
+    private async Task OnTarSelected(InputFileChangeEventArgs e)
+    {
+        if (!_canWrite) { ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+
+        var file = e.File;
+        if (file == null) return;
+        if (!file.Name.EndsWith(".tar", StringComparison.OrdinalIgnoreCase))
+        {
+            ToastService.ShowToast(ToastIntent.Error, "El fichero debe ser un .tar (creado con 'docker save').");
+            return;
+        }
+
+        isLoadingTar = true;
+        StateHasChanged();
+
+        // Guardamos el fichero subido en un temporal del servidor y desde ahí lo enviamos
+        // por streaming al Docker remoto. El temporal se borra siempre al terminar.
+        var tempPath = Path.GetTempFileName();
+        try
+        {
+            const long maxSize = 2L * 1024 * 1024 * 1024; // 2 GB máximo
+
+            await using (var destino = File.Create(tempPath))
+            {
+                await file.OpenReadStream(maxSize).CopyToAsync(destino);
+            }
+
+            await using (var tar = File.OpenRead(tempPath))
+            {
+                var (success, message) = await DockerEngine.LoadImageFromTarAsync(server, tar);
+                ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
+                if (success) await ReloadImages();
+            }
+        }
+        catch (Exception ex)
+        {
+            ToastService.ShowToast(ToastIntent.Error, $"Error al subir el fichero: {ex.Message}");
+        }
+        finally
+        {
+            if (File.Exists(tempPath)) File.Delete(tempPath);
+            isLoadingTar = false;
+        }
+    }
+
+    private async Task DeleteImage(string imageId)
+    {
+        if (!_canWrite) { ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+        var (success, message) = await DockerEngine.RemoveImageAsync(server, imageId);
+        ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
+        if (success) await ReloadImages();
+    }
+
+    private void GoBack()
+    {
+        Navigation.NavigateTo($"/docker/servers/{ServerId}");
+    }
+
+    private static string ShortId(string id) =>
+        id.StartsWith("sha256:") ? id.Substring(7, 12) : id.Length > 12 ? id.Substring(0, 12) : id;
+
+    private static string FormatSize(long bytes)
+    {
+        if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+        if (bytes < 1024L * 1024 * 1024) return $"{bytes / (1024.0 * 1024):F1} MB";
+        return $"{bytes / (1024.0 * 1024 * 1024):F2} GB";
+    }
+}

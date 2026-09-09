@@ -1,0 +1,42 @@
+@page "/docker/doc-marco-tendencias"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Marco teórico · Retos, futuro y conclusión — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-marco-pruebas" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Pruebas, despliegue y seguridad</FluentAnchor>
+            <span class="doc-progress">11 / 23</span>
+            <FluentAnchor Href="/docker/doc-metodologia" Appearance="Appearance.Lightweight">Metodología <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Marco teórico</h1>
+            <h2 class="doc-title">Retos, futuro y conclusión</h2>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">Por dónde van las tendencias: contenedores serverless, edge computing, IA/ML y WebAssembly (Stonebranch, s. f.; WebAssembly, s. f.).</p>
+            <h2 class="doc-h2">Retos</h2>
+            <p class="doc-p">El reto más evidente del proyecto es exponer la API de Docker a través de una capa web sin abrir agujeros. El daemon de Docker es muy potente y, sin un sistema de autenticación y autorización sólido encima, ofrece esencialmente acceso root a la máquina, cualquier persona con acceso al daemon puede hacer prácticamente lo que quiera con el host (Docker, s. f.). De ahí que el modelo mixto (cookies + JWT) y el RBAC se hayan llevado tanto peso en el diseño. A eso se suma la asincronía, casi todas las operaciones de Docker.DotNet devuelven Task, y mantener una interfaz fluida mientras se esperan respuestas que pueden tardar (descargar una imagen, arrancar un contenedor grande) obliga a aplicar con cierto cuidado los patrones de programación asíncrona de .NET (Microsoft, s. f.). Y luego está la coherencia del estado, porque el estado real vive en el motor de Docker y no en la base de datos, así que la interfaz tiene que refrescar bien para no mostrar información obsoleta.</p>
+            <h2 class="doc-h2">Futuro</h2>
+            <p class="doc-p">Hay varias líneas naturales de continuación. La más inmediata es completar el módulo de imágenes, volúmenes y redes, que ya quedó identificado como segunda fase y daría a la plataforma cobertura sobre todas las entidades de Docker. A medio plazo encaja un dashboard de salud de contenedores con detección de anomalías, una capa interesante para explorar la telemetría que Docker ya expone por defecto a través de su API (Docker, s. f.) y para entrar en territorio de analítica más allá del CRUD. Más adelante, la gestión de varios hosts Docker desde una misma plataforma abriría la puerta a usarla en escenarios de pequeña empresa, donde Kubernetes resulta excesivo pero un único host se queda corto.</p>
+            <h2 class="doc-h2">Tendencias</h2>
+            <p class="doc-p">La tendencia más cercana al proyecto es la expansión de WebAssembly fuera del navegador. La interfaz de sistema WASI (WebAssembly System Interface - Interfaz de Sistema de WebAssembly) está estandarizando el acceso de los módulos Wasm a recursos del sistema operativo desde fuera del browser (Bytecode Alliance, s. f.), y entornos como wasmCloud (wasmCloud, s. f.) o Spin (Fermyon, s. f.) están empujando un modelo donde los servicios se distribuyen como módulos Wasm en vez de contenedores Docker, con tiempos de arranque mucho más cortos y consumo de recursos menor. La otra tendencia con impacto directo es la adopción de runtimes serverless de contenedores como AWS Fargate (Amazon Web Services, s. f.), Google Cloud Run (Google Cloud, s. f.) o Azure Container Apps (Microsoft, s. f.), que eliminan la gestión del host y cambian el rol de una herramienta como esta, en lugar de orquestar contenedores sobre un servidor propio, podría servir como capa de control sobre una infraestructura gestionada.</p>
+            <h2 class="doc-h2">Conclusión</h2>
+            <p class="doc-p">A lo largo del capítulo se ha repasado el camino que llevó de la virtualización por máquinas virtuales a la contenedorización, y cómo Docker convirtió esta última en algo accesible para cualquier desarrollador. Se ha visto también la arquitectura cliente-servidor del propio Docker, con el motor exponiendo una API REST sobre la que se construyen tanto la CLI oficial como cualquier cliente externo, y se han revisado las prácticas habituales de seguridad en este tipo de plataformas, autenticación con tokens, control de acceso por roles y comunicación cifrada.</p>
+            <p class="doc-p">Esta base sirve para entender el punto de partida del proyecto. La API REST de Docker es la pieza clave, está pensada para que cualquier herramienta externa pueda hablar con el motor de forma programática, no hay nada que impida construir encima una interfaz web que cubra las operaciones del día a día sin obligar al usuario a moverse por la terminal. Existen ya soluciones que apuntan en esa dirección, como Portainer o Rancher, lo que confirma que la idea es viable y que el problema que se quiere resolver es real. La propuesta que se desarrolla aquí no busca competir con esas herramientas, sino construir una versión más sencilla desde cero, lo que ayuda a entender por dentro cómo se integran las piezas y a aplicar de forma directa lo que se ha aprendido durante el grado.</p>
+            <p class="doc-p">Con todo lo anterior en la mano, los siguientes capítulos abordan el análisis y el diseño de la plataforma, qué requisitos cubre, qué arquitectura sigue y cómo encajan en la práctica las piezas que aquí se han presentado de forma teórica.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-marco-pruebas" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Pruebas, despliegue y seguridad</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-metodologia" Appearance="Appearance.Lightweight">Metodología <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

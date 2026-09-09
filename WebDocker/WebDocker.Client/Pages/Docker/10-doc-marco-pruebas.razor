@@ -1,0 +1,47 @@
+@page "/docker/doc-marco-pruebas"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Marco teórico · Pruebas, despliegue y seguridad — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-marco-implementacion" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Implementación</FluentAnchor>
+            <span class="doc-progress">10 / 23</span>
+            <FluentAnchor Href="/docker/doc-marco-tendencias" Appearance="Appearance.Lightweight">Marco teórico · Retos, futuro y conclusión <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Marco teórico</h1>
+            <h2 class="doc-title">Pruebas, despliegue y seguridad</h2>
+        </header>
+
+        <article class="doc-content">
+            <h2 class="doc-h2">Pruebas</h2>
+            <p class="doc-p">Pruebas unitarias: validan componentes individuales aislados, las piezas que no dependen de Docker: validadores de entrada, mapeos entre modelos y DTOs, lógica de RBAC, helpers y la generación y validación de tokens JWT. Al no tener dependencias externas, estos tests son rápidos, deterministas y no requieren preparar entornos especiales para ejecutarse.</p>
+            <p class="doc-p">Pruebas de integración: verifican que las piezas funcionen juntas, incluida la interacción con la base de datos y la API de Docker. Eso permite verificar que las llamadas a la API se comportan como deberían, que los contenedores se crean y se destruyen sin dejar restos y que los errores típicos (motor caído, imagen inexistente, permiso denegado) se gestionan sin tumbar la aplicación. Es algo más lento que un test unitario, pero da una garantía mucho más fiable de que la integración funciona.</p>
+            <p class="doc-p">Pruebas de usabilidad: ver a usuarios reales usando la plataforma. Es donde aparecen los puntos de fricción y los flujos confusos que no se ven desde dentro.</p>
+            
+            <h2 class="doc-h2">Despliegue</h2>
+            <p class="doc-p">El despliegue real queda fuera del alcance de este proyecto, pero conviene dejar documentada la estrategia prevista. Para una aplicación con un único servicio web y una base de datos, lo razonable es empezar con Docker Compose: un docker-compose.yml describe los servicios y los levanta con un solo comando, sin complicaciones añadidas.</p>
+            <p class="doc-p">Existen orquestadores más potentes como Docker Swarm o Kubernetes, pensados para escenarios donde hace falta alta disponibilidad, balanceo entre varios nodos o auto escalado dinámico. No es el caso aquí. Si en el futuro la plataforma creciera y tuviese que escalar, el paso natural sería migrar la definición de Compose a un manifiesto de Kubernetes, que es el estándar de facto para orquestación a gran escala.</p>
+            
+            <h2 class="doc-h2">Seguridad</h2>
+            <p class="doc-p">La seguridad de la plataforma se aborda desde el principio del desarrollo y se centra en lo que el código entrega, autenticación, autorización, protección de los datos en tránsito y en almacenamiento, y manejo cuidadoso de las credenciales que el backend necesita para hablar con Docker. La seguridad de la infraestructura sobre la que se despliega queda fuera del alcance, así que aquí solo se trata lo que depende del propio código.</p>
+            <p class="doc-p">La autenticación sigue el modelo mixto que se describió en el apartado de Backend. ASP.NET Core Identity gestiona la sesión web con cookies, que cubre las páginas Razor renderizadas en el servidor. Para las llamadas a la API que pudiera hacer un cliente externo se utilizan tokens JWT de vida limitada (60 minutos por defecto, configurable) y un mecanismo de renovación mediante refresh token, para no obligar al usuario a iniciar sesión cada vez que expira. Las contraseñas no se almacenan en claro: se aplica el hash con sal estándar de ASP.NET Core Identity antes de persistirlas.</p>
+            <p class="doc-p">Sobre la autenticación se aplica RBAC con dos roles por defecto, administrador y usuario estándar. Cada endpoint del backend declara qué permiso concreto exige mediante un atributo propio ([RequirePermission("...")]), de modo que la comprobación ocurre antes de ejecutar la lógica del controlador. Los roles agrupan permisos, así que se pueden añadir roles o reajustar sus permisos sin tocar el código de autorización.</p>
+            <p class="doc-p">Todas las comunicaciones se hacen por HTTPS: entre el navegador y el backend, y entre el backend y el motor de Docker. Lo segundo es especialmente importante, porque la API de Docker expone operaciones bastante sensibles y dejarla sin TLS sería un agujero serio incluso en redes internas.</p>
+            <p class="doc-p">En cuanto al manejo de datos, todo lo que entra por la API se valida en el backend antes de tocar la lógica de negocio. El acceso a la base de datos pasa siempre por Entity Framework Core, que parametriza las consultas y elimina en la práctica el riesgo de inyección SQL. Por el lado del frontend, Blazor escapa por defecto el contenido que renderiza, lo que ayuda con el riesgo de XSS (cross-site scripting: que alguien cuele código JavaScript en un campo de texto, por ejemplo, en un nombre de contenedor, y ese código acabe ejecutándose en el navegador de otro usuario).</p>
+            <p class="doc-p">Por último, las credenciales que el backend necesita para hablar con Docker (URL del endpoint, certificados o tokens en su caso) se guardan fuera del código fuente, en variables de entorno o en la configuración de ASP.NET Core que se sobreescribe desde el entorno. Nunca viajan al cliente. La clave de firma del JWT recibe el mismo tratamiento.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-marco-implementacion" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Implementación</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-marco-tendencias" Appearance="Appearance.Lightweight">Marco teórico · Retos, futuro y conclusión <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

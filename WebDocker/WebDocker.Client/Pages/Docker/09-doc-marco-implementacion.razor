@@ -1,0 +1,53 @@
+@page "/docker/doc-marco-implementacion"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Marco teórico · Implementación — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-marco-diseno" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Diseño de la plataforma</FluentAnchor>
+            <span class="doc-progress">9 / 23</span>
+            <FluentAnchor Href="/docker/doc-marco-pruebas" Appearance="Appearance.Lightweight">Marco teórico · Pruebas, despliegue y seguridad <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Marco teórico</h1>
+            <h2 class="doc-title">Implementación</h2>
+        </header>
+
+        <article class="doc-content">
+            <h3 class="doc-h3">Entorno de Desarrollo</h3>
+            <p class="doc-p">La idea con el entorno es que cualquiera que se descargue el repositorio pueda levantar la plataforma con el menor número de pasos posibles. No conviene empezar el desarrollo arrastrando un setup frágil, cuanto más automatizado esté el arranque, menos tiempo se pierde después en discusiones del tipo "en mi máquina no funciona". Las piezas que se necesitan son: </p>
+            <p class="doc-p">Sistema operativo y virtualización de Docker: el trabajo se hace sobre Windows, con WSL2 (Hyper-V como alternativa) para correr el motor de Docker sobre Linux. Es la opción recomendada por la propia documentación de Docker y la que mejor refleja un entorno real, donde los contenedores acaban ejecutándose sobre kernel Linux (Docker, s. f.).</p>
+            <p class="doc-p">Docker Desktop: el paquete que instala el motor de Docker y expone la API REST sobre la que se apoya la plataforma. También permite alternar entre una instalación local y un host remoto sin tocar el código.</p>
+            <p class="doc-p">.NET 10.0 SDK: necesario para compilar el backend (ASP.NET Core 10.0) y el frontend (Blazor WebAssembly). Como ambos comparten lenguaje y SDK, también se comparten paquetes NuGet entre proyectos, que es una de las ventajas reales de tener C# a ambos lados.</p>
+            <p class="doc-p">Visual Studio 2022 (Community): IDE principal. Tiene buen soporte de Blazor, hot reload, depuración del lado WebAssembly y se integra de serie con Docker para construir y depurar contenedores. Para tareas más ligeras, como editar configuraciones o abrir el repositorio desde otra máquina, Visual Studio Code es una alternativa perfectamente válida.</p>
+            <p class="doc-p">Git: control de versiones, en este caso opcional. Al ser un TFG individual no hay equipo con el que coordinarse, así que las ramas por funcionalidad y el flujo de pull requests pierden parte del sentido habitual. Aun así, mantener el código en un repositorio (local o en GitHub) tiene utilidad práctica: deja un historial al que volver si algo se rompe y sirve como registro de evolución para la memoria.</p>
+            <p class="doc-p">Sobre las dependencias del propio proyecto, conviene destacar dos por el peso que tienen en la arquitectura: Docker.DotNet, la librería con la que el backend habla con el motor de Docker desde C#, y Entity Framework Core 10.0, que cubre la capa de acceso a datos.</p>
+            <p class="doc-p">De cara a un hipotético despliegue se contempla el uso de Docker Compose para orquestar los servicios, aunque esta fase queda fuera del alcance del TFG tal y como se indica en el anteproyecto.</p>
+            
+            <h3 class="doc-h3">Backend</h3>
+            <p class="doc-p">El backend es una API REST construida sobre ASP.NET Core 10.0, con Entity Framework Core 10.0 en la capa de acceso a datos. Hace de intermediario entre el frontend, el motor de Docker y la base de datos: recibe las peticiones del cliente, comprueba permisos, ejecuta la operación correspondiente contra Docker (arrancar un contenedor, leer logs, listar imágenes, según corresponda) y persiste lo que haya que guardar.</p>
+            <p class="doc-p">Para hablar con el motor desde C# se usa Docker.DotNet, que es la librería de referencia en el ecosistema .NET para consumir la API de Docker Engine. No es un cliente mantenido oficialmente por Docker, pero es la opción más adoptada y la que mejor cubre la API actual.</p>
+            <p class="doc-p">En cuanto a la seguridad, la autenticación va con un modelo mixto: cookies de ASP.NET Core Identity para la sesión web, que es lo que cubre las páginas Razor renderizadas en servidor, y JWT para las llamadas a la API REST que puedan hacer clientes externos (scripts, Postman u otras herramientas). Sobre ese sistema se aplica RBAC para distinguir entre administradores y usuarios estándar (Microsoft, s. f.).</p>
+            
+            <h3 class="doc-h3">Frontend</h3>
+            <p class="doc-p">El frontend es una Blazor Web App con modos de render interactivos (Server, predominante, y WebAssembly). Combina Razor Components renderizados en el servidor con módulos en WebAssembly que se ejecutan en el navegador del usuario. Las páginas que no necesitan interacción intensiva se sirven desde el servidor para que la carga inicial sea más rápida.</p>
+            <p class="doc-p">Para los componentes visuales se utiliza Microsoft Fluent UI, la biblioteca de controles que Microsoft mantiene para Blazor. Trae una estética consistente con el resto del ecosistema y ahorra tener que diseñar CSS desde cero.</p>
+            
+            <h3 class="doc-h3">Integración con Docker</h3>
+            <p class="doc-p">La integración con Docker Engine es el núcleo del proyecto y, en buena medida, lo que justifica que la plataforma exista. La conexión se hace por TCP contra la API REST del motor, usando Docker.DotNet como cliente. Esto permite que el motor esté en la misma máquina que la aplicación o en un host remoto sin que el código se entere de nada; basta con cambiar la URL del endpoint en la configuración.</p>
+            <p class="doc-p">Existe también la opción de conectar a través del socket Unix (/var/run/docker.sock), pero no es la vía elegida aquí. El socket solo funciona en local sobre Linux y deja fuera el escenario de gestionar hosts remotos, que es uno de los casos contemplados en el alcance. Conviene aclarar un punto que se suele confundir. La plataforma no envuelve la CLI de Docker, trabaja directamente sobre la API REST del daemon, igual que hace la propia CLI por dentro. Las dos son clientes del mismo motor, no una capa sobre la otra. Lo que aporta la plataforma es una interfaz gráfica que cubre las operaciones más comunes para quien no quiera o no sepa moverse en la terminal, pero por debajo está hablando con la API al mismo nivel que cualquier otro cliente (Docker, s. f.).</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-marco-diseno" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Diseño de la plataforma</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-marco-pruebas" Appearance="Appearance.Lightweight">Marco teórico · Pruebas, despliegue y seguridad <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

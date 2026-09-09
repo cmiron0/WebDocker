@@ -1,0 +1,61 @@
+@page "/docker/doc-apendice-ubuntu"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Apéndice A · Ubuntu 22.04 en Hyper-V — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-apendice-hyperv" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Instalación de Hyper-V</FluentAnchor>
+            <span class="doc-progress">19 / 23</span>
+            <FluentAnchor Href="/docker/doc-apendice-wsl" Appearance="Appearance.Lightweight">Apéndice A · WSL en Windows 11 <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Apéndice A</h1>
+            <h2 class="doc-title">Ubuntu 22.04 LTS en Hyper-V</h2>
+        </header>
+
+        <article class="doc-content">
+            <p class="doc-p">Hyper-V tiene una opción de "Creación rápida" que instala Ubuntu 22.04 LTS descargando la imagen optimizada automáticamente.</p>
+            
+            <h3 class="doc-h3">Método rápido: Creación rápida (Quick Create)</h3>
+            <p class="doc-p">• Abrir el "Administrador de Hyper-V" desde el menú Inicio.</p>
+            <p class="doc-p">• En el panel derecho, hacer clic en "Creación rápida..." (o en el menú Acción &gt; Creación rápida).</p>
+            <p class="doc-p">• En la ventana de creación rápida, seleccionar "Ubuntu 22.04 LTS" de la lista de sistemas operativos disponibles.</p>
+            <p class="doc-p">• Hacer clic en "Crear máquina virtual". Hyper-V descargará la imagen automáticamente (aproximadamente 2 GB).</p>
+            <p class="doc-p">• Una vez completada la descarga, hacer clic en "Conectar" para abrir la consola de la máquina virtual.</p>
+            <p class="doc-p">• Hacer clic en "Iniciar" para arrancar la máquina virtual.</p>
+            <p class="doc-p">• Seguir el asistente de configuración inicial de Ubuntu: seleccionar idioma, zona horaria, crear usuario y contraseña.</p>
+            <p class="doc-nota"><strong>Nota:</strong> La descarga puede tardar varios minutos dependiendo de la velocidad de la conexión a Internet.</p>
+            
+            <h3 class="doc-h3">Método manual: Instalación desde ISO</h3>
+            <p class="doc-p">Si la creación rápida no está disponible o se quiere personalizar más:</p>
+            <p class="doc-p">• Descargar la imagen ISO de Ubuntu 22.04 LTS desde <a href="https://releases.ubuntu.com/22.04/." target="_blank" rel="noopener" class="doc-link">https://releases.ubuntu.com/22.04/.</a></p>
+            <p class="doc-p">• En el Administrador de Hyper-V, seleccionar "Nuevo" &gt; "Máquina virtual...".</p>
+            <p class="doc-p">• Asignar un nombre a la máquina virtual (por ejemplo, "Ubuntu-22.04-Dev").</p>
+            <p class="doc-p">• Seleccionar "Generación 2" para aprovechar UEFI y Secure Boot.</p>
+            <p class="doc-p">• Asignar al menos 2048 MB de memoria (se recomiendan 4096 MB).</p>
+            <p class="doc-p">• Configurar la conexión de red seleccionando el conmutador virtual "Default Switch".</p>
+            <p class="doc-p">• Crear un disco duro virtual con al menos 25 GB (se recomiendan 50 GB).</p>
+            <p class="doc-p">• En la opción de instalación, seleccionar "Instalar un sistema operativo desde un archivo de imagen" y buscar la ISO descargada.</p>
+            <p class="doc-p">• Finalizar el asistente y, antes de iniciar la VM, ir a Configuración &gt; Seguridad y desmarcar "Habilitar arranque seguro" (o cambiar la plantilla a "Microsoft UEFI Certificate Authority").</p>
+            <p class="doc-p">• Iniciar la máquina virtual y seguir el proceso de instalación estándar de Ubuntu.</p>
+            
+            <h3 class="doc-h3">Configuración post-instalación recomendada</h3>
+            <p class="doc-p">Con Ubuntu instalado, ejecutar en el terminal de la VM:</p>
+            <pre class="doc-console">sudo apt update &amp;&amp; sudo apt upgrade -y</pre>
+            <pre class="doc-console">sudo apt install -y linux-tools-virtual linux-cloud-tools-virtual</pre>
+            <p class="doc-p">Estos paquetes son los servicios de integración de Hyper-V: copiar/pegar, resolución dinámica y sincronización horaria.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-apendice-hyperv" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Instalación de Hyper-V</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-apendice-wsl" Appearance="Appearance.Lightweight">Apéndice A · WSL en Windows 11 <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

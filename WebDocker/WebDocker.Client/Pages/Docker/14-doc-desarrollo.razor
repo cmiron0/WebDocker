@@ -1,0 +1,69 @@
+@page "/docker/doc-desarrollo"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Desarrollo — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-analisis" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Análisis funcional y técnico</FluentAnchor>
+            <span class="doc-progress">14 / 23</span>
+            <FluentAnchor Href="/docker/doc-resultados" Appearance="Appearance.Lightweight">Resultados <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Desarrollo</h1>
+        </header>
+
+        <article class="doc-content">
+            <h2 class="doc-h2">Introducción y objetivos del capítulo</h2>
+            <p class="doc-p">Este apartado explica el paso a paso de cómo se ha desarrollado la gestión de servidores Docker y contenedores en el proyecto WebDocker. El proyecto es una aplicación web basada en ASP.NET Core 10.0 con Blazor.</p>
+            <p class="doc-p">Los objetivos del desarrollo son permitir al usuario autenticado gestionar conexiones a servidores Docker remotos (Windows y Linux), guardar la configuración en SQLite con Entity Framework Core, conectar al Docker Engine remoto vía API REST usando Docker.DotNet, listar contenedores en un grid interactivo, permitir CRUD completo (crear, iniciar, parar, reiniciar, eliminar) y navegar entre la lista de servidores y el detalle de cada uno.</p>
+            
+            <h2 class="doc-h2">Arquitectura de la solución</h2>
+            <p class="doc-p">La solución sigue una arquitectura por capas. La presentación es una Blazor Web App cuyos componentes se renderizan en el servidor (modo InteractiveServer, predominante; algo de WebAssembly en modo Auto); el navegador se comunica con el servidor por el circuito SignalR interno de Blazor. La lógica de negocio vive en servicios como DockerServerService y DockerEngineService, a los que los componentes llaman directamente, en proceso. La capa de datos persiste con Entity Framework Core sobre SQLite. De forma independiente, la aplicación expone una API REST (controladores ASP.NET Core: autenticación, servidores Docker y operaciones contra el Docker Engine) pensada para clientes externos, que se autentican por HTTP/JSON con JWT en la cabecera Authorization y reutilizan esos mismos servicios.</p>
+            <p class="doc-p">La conexión a Docker Engine va por su API REST. El daemon se expone vía TCP en el puerto 2375 (sin TLS) o 2376 (con TLS). Docker.DotNet es un cliente HTTP que se conecta a esta API para gestionar contenedores, imágenes, volúmenes y redes. La API funciona igual en Windows y en Linux.</p>
+            
+            <h2 class="doc-h2">Autenticación con JSON Web Tokens (JWT)</h2>
+            <p class="doc-p">ASP.NET Core Identity con cookies basta para una aplicación renderizada en servidor, pero a la hora de llamar a la lógica desde fuera del navegador la cookie resulta un inconveniente, depende del dominio, no se firma sola desde Postman o cURL, y obliga a montar todo un flujo de sesión que no aporta nada a un script de integración.</p>
+            <p class="doc-p">Por eso se añade un segundo esquema basado en JSON Web Tokens (JWT) que convive con el de cookies sin pisarlo. La interfaz Blazor sigue haciendo login con el formulario de Identity y recibe su cookie como antes, un cliente programático llama a POST /api/auth/login, recibe un JWT firmado y lo envía en la cabecera Authorization de las peticiones siguientes. Los dos modos conviven en el mismo proceso.</p>
+            <p class="doc-p">Para sostenerlo se añaden dos paquetes NuGet al proyecto servidor, Microsoft.AspNetCore.Authentication.JwtBearer (middleware que valida los tokens) y System.IdentityModel.Tokens.Jwt (librería sobre la que se construye y firma el token). El bloque JWT del appsettings.json declara emisor, audiencia y la clave con la que se firma. Y se crea el servicio JwtTokenService bajo Services/ con una única responsabilidad, emitir tokens con los claims que necesita el sistema (id del usuario, nombre de usuario, roles y lista de permisos).</p>
+            
+            <h2 class="doc-h2">API REST con controladores y DTOs</h2>
+            <p class="doc-p">Se expone la funcionalidad de gestión de Docker (servidores, contenedores, imágenes, volúmenes y redes) en una API REST. Los controladores están en Api/Controllers y los DTOs en Api/Dtos. Los DTOs viven separados del modelo de dominio, las entidades de EF Core, en Data/, para no acoplar lo que entra y sale por HTTP al esquema interno de la base de datos.</p>
+            <p class="doc-p">Los seis controladores que sostienen la API son AuthController (login, registro y consulta del usuario actual), DockerServersController (CRUD de servidores y prueba de conexión), DockerEngineController (información del engine y gestión de contenedores), DockerImagesController, DockerVolumesController y DockerNetworksController (gestión de imágenes, volúmenes y redes Docker).</p>
+            <p class="doc-p">La API expone alrededor de treinta endpoints agrupados por recurso bajo el prefijo común /api, autenticación (login, register, me), servidores (CRUD, prueba de conexión, info del engine), contenedores (listado, creación, start/stop/restart, logs, borrado), e imágenes/volúmenes/redes (listado, creación y borrado).</p>
+            <p class="doc-p">Cada controlador exige token JWT válido. Las acciones filtran por usuario leyendo su identificador del JWT, de modo que un usuario solo ve sus propios servidores.</p>
+            <p class="doc-p">La API nunca devuelve las entidades de la base de datos tal cual, las convierte antes en DTOs, clases más simples con solo los campos que el cliente necesita. Esa conversión la hacen métodos estáticos privados (ToDto) dentro de cada controlador. ¿Por qué ahí y no en la propia entidad? Porque así la entidad no sabe nada de los DTOs, la capa de datos queda limpia y es la API la que depende de ella, no al revés.</p>
+            
+            <h2 class="doc-h2">Autorización por permisos (RBAC)</h2>
+            <p class="doc-p">La autorización va por permisos (RBAC), no solo por roles a secas. Con [Authorize (Roles=...)] el control se queda corto, si se quiere permitir ver imágenes, pero no descargarlas, tendría que inventar un rol nuevo y tocar código en varios puntos. Con permisos, cada acción solicita el permiso que le corresponde.</p>
+            <p class="doc-p">El modelo se apoya en dos entidades. Permission guarda la lista cerrada de permisos del sistema, con códigos tipo "servers.read" y una descripción legible.</p>
+            <p class="doc-p">RolePermission es la tabla puente que dice qué permisos tiene cada rol. La migración inicial (00000000000000_CreateInitialSchema) crea las tablas y, al arrancar la aplicación, una clase de seed (IdentitySeed) inserta los once permisos: lectura y escritura para los cinco recursos (servidores, contenedores, imágenes, volúmenes y redes) más uno administrativo, users.admin. El Administrador los recibe todos; el Usuario, los de lectura más servers.write y containers.write.</p>
+            <p class="doc-p">En el acceso por API, el token JWT se emite en el login con los permisos efectivos del usuario como claims, los controladores comprueban el permiso con un atributo propio ([RequirePermission]) en cada acción, sin volver a consultar la base de datos (los permisos ya viajan en el token). En el acceso por la interfaz web (cookie de Identity), la cookie no lleva esos permisos, así que un IClaimsTransformation (PermissionClaimsTransformation) los añade tras autenticar en cada petición, consultándolos en la base de datos, y la UI los verifica con el helper HasPermission. En ambos casos, añadir un permiso nuevo no obliga a tocar el código de autorización, basta con sembrarlo y asignarlo al rol.</p>
+            
+            <h2 class="doc-h2">Páginas Blazor de gestión</h2>
+            <p class="doc-p">DockerEngineService ya tenía métodos para imágenes, volúmenes y redes, pero faltaba ponerlos delante del usuario. Para eso se añaden las páginas Razor que permiten gestionar esos recursos desde la interfaz sin tener que abrir terminal.</p>
+            <p class="doc-p">ServerImages.razor lista las imágenes locales del engine remoto con sus tags, identificador corto, tamaño y fecha de creación; tiene un formulario para lanzar docker pull con indicador de descarga y un botón de borrado que informa del resultado con un toast.</p>
+            <p class="doc-p">ServerVolumes.razor lista, crea y borra volúmenes. Si un volumen está en uso por algún contenedor, Docker rechaza el borrado y la página muestra el error sin romperse.</p>
+            <p class="doc-p">ServerNetworks.razor gestiona redes Docker mostrando nombre, driver (bridge, overlay, host) y scope; las redes predefinidas (bridge, host, none) no se pueden borrar desde la interfaz.</p>
+            <p class="doc-p">ServerDetail.razor, la página de detalle de cada servidor, incluye en su barra de acciones tres botones que llevan a esas tres páginas. Cada botón navega con el id del servidor en la URL, así la página de destino sabe a qué servidor consultar.</p>
+            
+            <h2 class="doc-h2">Pruebas</h2>
+            <p class="doc-p">La mayor parte de las pruebas se hacen a mano, sobre la aplicación corriendo contra un Docker Engine real. El procedimiento es el habitual, registrar un servidor, probar la conexión, crear un contenedor, arrancarlo, pararlo, eliminarlo, y repetir el ciclo con imágenes, volúmenes y redes. También los casos límite, motor apagado, imagen que no existe, borrar un volumen en uso. Lo que se busca es que la interfaz responda con un mensaje claro y no se caiga. Aparte, siguiendo lo planteado en la metodología, varios usuarios de prueba usaron la plataforma para realizar tareas básicas y de ahí obtener feedback para ajustes de usabilidad.</p>
+            
+            <h2 class="doc-h2">Resultado del desarrollo</h2>
+            <p class="doc-p">Con los seis pasos cerrados, WebDocker queda como una aplicación web para humanos y, además, como una API a la que se le puede hablar desde fuera. Los treinta endpoints cubren las operaciones de gestión de Docker (servidores, contenedores, imágenes, volúmenes y redes), así que un script, un cliente móvil o un pipeline de CI/CD pueden hacer lo mismo que un usuario sentado delante del navegador. La administración de usuarios, roles y la auditoría quedan solo en la interfaz web.</p>
+            <p class="doc-p">Todo el recorrido funcional está validado contra un Docker Engine real, con una batería de pruebas cubriendo las piezas más delicadas.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-analisis" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Análisis funcional y técnico</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-resultados" Appearance="Appearance.Lightweight">Resultados <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

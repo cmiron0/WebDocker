@@ -1,0 +1,197 @@
+@page "/docker/server/volumes/{ServerId:int}"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+
+@using global::Docker.DotNet.Models
+@using WebDocker.Data
+@using WebDocker.Services
+
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+@inject ServerService ServerService
+@inject DockerService DockerService
+
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+@inject IToastService ToastService
+@inject IDialogService DialogService
+
+<PageTitle>Volúmenes - @(server?.Name ?? "Servidor")</PageTitle>
+
+<div class="container-fluid px-4 py-3">
+
+
+    <!-- Botón Volver -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    <div class="mb-3">
+        <FluentButton Appearance="Appearance.Stealth" OnClick="@GoBack">
+            <FluentIcon Value="@(new Icons.Regular.Size20.ArrowLeft())" Slot="start" />
+            Volver al Servidor
+        </FluentButton>
+    </div>
+
+
+    <!-- Volumenes -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (isLoading)
+    {
+        <FluentProgressRing />
+    }
+    else if (server == null)
+    {
+        <FluentMessageBar Intent="MessageIntent.Error">
+            Servidor no encontrado o sin permisos.
+        </FluentMessageBar>
+    }
+    else
+    {
+        <h2>Volúmenes de @server.Name</h2>
+
+        <div class="d-flex gap-2 my-3">
+            <FluentTextField @bind-Value="newVolumeName" Placeholder="nombre del volumen" />
+            <FluentButton Appearance="Appearance.Accent" OnClick="@CreateVolume" Disabled="@(isCreating || !_canWrite)">
+                @(isCreating ? "Creando..." : "Crear volumen")
+            </FluentButton>
+        </div>
+
+        @if (volumes.Count == 0)
+        {
+            <FluentMessageBar Intent="MessageIntent.Info">No hay volúmenes.</FluentMessageBar>
+        }
+        else
+        {
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Driver</th>
+                        <th>Mountpoint</th>
+                        <th>Creado</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var vol in volumes)
+                    {
+                        <tr>
+                            <td>@vol.Name</td>
+                            <td>@vol.Driver</td>
+                            <td><small>@vol.Mountpoint</small></td>
+                            <td>@vol.CreatedAt</td>
+                            <td>
+                                <FluentButton Appearance="Appearance.Outline" OnClick="@(() => DeleteVolume(vol.Name))" Disabled="@(!_canWrite)">
+                                    Eliminar
+                                </FluentButton>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int ServerId { get; set; }
+
+    private DockerServer? server;
+    private IList<VolumeResponse> volumes = new List<VolumeResponse>();
+
+    private bool isLoading = true;
+    private string? authUserId;
+    private bool _canWrite;
+
+    private bool isCreating = false;
+    private string newVolumeName = string.Empty;
+
+    private void GoBack() => Navigation.NavigateTo($"/docker/serverdetail/{ServerId}");
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        authUserId = authState.User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        _canWrite = authState.User.HasPermission("volumes.write");
+
+        if (authUserId == null)
+        {
+            Navigation.NavigateTo("/Account/Login");
+            return;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            server = await ServerService.GetServerById(ServerId, authUserId!);
+            if (server != null)
+            {
+                volumes = await LoadVolumes();
+            }
+            isLoading = false;
+            StateHasChanged();
+        }
+
+    }
+
+    private async Task<IList<VolumeResponse>> LoadVolumes()
+    {
+        if (server == null) return null!;
+        return await DockerService.GetVolumes(server);
+    }
+
+    private async Task CreateVolume()
+    {
+        if (!_canWrite) 
+        { 
+            ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); 
+            return; 
+        }
+
+        if (server == null || string.IsNullOrWhiteSpace(newVolumeName)) return;
+
+        isCreating = true;
+        StateHasChanged();
+
+        var (success, message) = await DockerService.CreateVolume(server, newVolumeName);
+        
+        isCreating = false;
+        StateHasChanged();
+
+        ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
+        
+        if (success)
+        {
+            newVolumeName = string.Empty;
+            volumes = await LoadVolumes();
+        }
+    }
+
+    private async Task DeleteVolume(string name)
+    {
+        if (!_canWrite) 
+        { 
+            ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); 
+            return; 
+        }
+        if (server == null) return;
+        
+        // Dialogo de confirmación de borrado.
+        var dlg = await DialogService.ShowConfirmationAsync($"¿Seguro que quieres borrar el volumen <strong>{name}</strong>?", "Borrar", "Cancelar", "Confirmar borrado");
+        var result = await dlg.Result;
+        if (result.Cancelled) return;
+
+        var (success, message) = await DockerService.RemoveVolume(server, name);
+        ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
+        
+        if (success) {
+            volumes = await LoadVolumes();
+        }
+    }
+
+
+}

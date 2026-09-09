@@ -1,0 +1,95 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using Microsoft.FluentUI.AspNetCore.Components
+
+@inject NavigationManager NavigationManager
+
+@* <AuthorizeView Roles="Administrator"> *@
+<AuthorizeView>
+    <Authorized>
+        <div class="action-menu">
+            <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light">
+                <div class="container">
+                    <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+
+                        <ul class="navbar-nav">
+
+                            <!-- Home -->
+                            <li class="nav-item">
+                                <div class="nav-item">
+                                    <nav class="flex-column">
+                                        <div class="nav-item">
+                                            <NavLink class="nav-link" href="/">
+                                                <span class="bi bi-house-door" aria-hidden="true"></span> Home
+                                            </NavLink>
+                                        </div>
+                                    </nav>
+                                </div>
+                            </li>
+
+                            <!-- Manager -->
+                            <li class="nav-item">
+                                <div class="nav-item">
+                                    <nav class="flex-column">
+                                        <div class="nav-item">
+                                            <NavLink class="nav-link" href="docker/serverlist">
+                                                <span class="bi bi-hdd-stack" aria-hidden="true"></span> Servidores
+                                            </NavLink>
+                                        </div>
+                                    </nav>
+                                </div>
+                            </li>
+
+                            <AuthorizeView Roles="Administrador">
+                                <Authorized Context="adminContext">
+                                    <li class="nav-item">
+                                        <div class="nav-item">
+                                            <nav class="flex-column">
+                                                <div class="nav-item">
+                                                    <NavLink class="nav-link" href="admin/admusers">
+                                                        <span class="bi bi-people" aria-hidden="true"></span> Users
+                                                    </NavLink>
+                                                </div>
+                                            </nav>
+                                        </div>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <div class="nav-item">
+                                            <nav class="flex-column">
+                                                <div class="nav-item">
+                                                    <NavLink class="nav-link" href="admin/admroles">
+                                                        <span class="bi bi-shield-lock" aria-hidden="true"></span> Roles
+                                                    </NavLink>
+                                                </div>
+                                            </nav>
+                                        </div>
+                                    </li>
+
+                                    <li class="nav-item">
+                                        <div class="nav-item">
+                                            <nav class="flex-column">
+                                                <div class="nav-item">
+                                                    <NavLink class="nav-link" href="admin/admaudit">
+                                                        <span class="bi bi-clipboard-check" aria-hidden="true"></span> Auditoría
+                                                    </NavLink>
+                                                </div>
+                                            </nav>
+                                        </div>
+                                    </li>
+                                </Authorized>
+                            </AuthorizeView>
+                        </ul>
+                    </div>
+                </div>
+            </nav>
+        </div>
+
+    </Authorized>
+    <NotAuthorized>
+
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+}
+

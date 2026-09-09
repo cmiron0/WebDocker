@@ -1,0 +1,54 @@
+@page "/docker/doc-apendice-resumen"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Apéndice A · Resumen comparativo de comandos — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-apendice-docker" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Instalación de Docker y muestras</FluentAnchor>
+            <span class="doc-progress">22 / 23</span>
+            <FluentAnchor Href="/docker/doc-apendice-tls" Appearance="Appearance.Lightweight">Apéndice B · Certificados TLS de Docker <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Apéndice A</h1>
+            <h2 class="doc-title">Resumen comparativo de comandos</h2>
+        </header>
+
+        <article class="doc-content">
+        <p class="doc-p">Comparativa entre los tres entornos:</p>
+
+        <br />
+        <table class="doc-table">
+            <caption>Tabla 9. Comparativa entre Hyper-V, WSL y Docker Desktop</caption>
+            <thead>
+                <tr>
+                    <th>Característica</th>
+                    <th>Hyper-V + Ubuntu</th>
+                    <th>WSL + Ubuntu</th>
+                    <th>Docker Desktop</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr><td>Aislamiento</td><td>Completo (VM)</td><td>Parcial (kernel compartido)</td><td>Contenedores</td></tr>
+                <tr><td>Rendimiento</td><td>Bueno (overhead de VM)</td><td>Excelente (nativo)</td><td>Excelente</td></tr>
+                <tr><td>Consumo de recursos</td><td>Alto (RAM reservada)</td><td>Bajo (dinámico)</td><td>Medio</td></tr>
+                <tr><td>Interfaz gráfica</td><td>Sí (escritorio completo)</td><td>Limitada (WSLg)</td><td>No aplica</td></tr>
+                <tr><td>Ideal para</td><td>Entornos aislados, pruebas de SO</td><td>Desarrollo diario</td><td>Microservicios, CI/CD</td></tr>
+                <tr><td>Edición de Windows</td><td>Pro/Enterprise/Education</td><td>Todas (incluida Home)</td><td>Todas (con WSL 2)</td></tr>
+            </tbody>
+        </table>
+
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-apendice-docker" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Apéndice A · Instalación de Docker y muestras</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-apendice-tls" Appearance="Appearance.Lightweight">Apéndice B · Certificados TLS de Docker <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

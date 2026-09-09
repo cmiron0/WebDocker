@@ -1,0 +1,128 @@
+@page "/admin/admaudit"
+
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.FluentUI.AspNetCore.Components
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using WebDocker.Data
+
+@attribute [Authorize(Roles = "Administrador")]
+@rendermode InteractiveServer
+
+@inject AppDbContext db
+
+<PageTitle>Auditoría</PageTitle>
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- Cabecera -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0" style="color:var(--accent-dark);">
+                <FluentIcon Value="@(new Icons.Regular.Size24.History())" Style="margin-right:8px;" />
+                Auditoría
+            </h2>
+            <p class="text-muted mb-0">Registro de las acciones sensibles (las 200 más recientes)</p>
+        </div>
+        <div>
+            <FluentButton Appearance="Appearance.Outline" OnClick="@OnLoad" Loading="@isOnLoading" Disabled="@isOnLoading">
+                <FluentIcon Value="@(new Icons.Regular.Size20.ArrowSync())" Slot="start" />
+                Refrescar
+            </FluentButton>
+            <FluentButton Appearance="Appearance.Outline" OnClick="@(async () => await OnDelete())" Loading="@isOnDeleting" Disabled="@isOnDeleting">
+                <FluentIcon Value="@(new Icons.Regular.Size20.Delete())" Slot="start" />
+                Limpiar
+            </FluentButton>
+        </div>
+    </div>
+
+
+    <!-- Logs -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <FluentProgressRing />
+        </div>
+    }
+    else if (logs == null || logs.Count == 0)
+    {
+        <FluentCard Style="text-align:center; padding:40px;">
+            <FluentIcon Value="@(new Icons.Regular.Size24.History())" Color="Color.Neutral" />
+            <h4 class="mt-3" style="color:#6c757d;">Todavía no hay registros de auditoría</h4>
+        </FluentCard>
+    }
+    else
+    {
+        <FluentDataGrid Items="@logs.AsQueryable()" TGridItem="AuditLog" Style="width:100%;" GridTemplateColumns="1.6fr 1fr 1.4fr 2.5fr 0.8fr" RowSize="DataGridRowSize.Medium">
+            <PropertyColumn Title="Fecha" Property="@(a => a.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm:ss"))" Sortable="true" />
+            <PropertyColumn Title="Usuario" Property="@(a => a.UserName)" Sortable="true" />
+            <PropertyColumn Title="Acción" Property="@(a => a.Action)" Sortable="true" />
+            <PropertyColumn Title="Objetivo" Property="@(a => a.Target)" />
+            <TemplateColumn Title="Resultado">
+                <FluentBadge Style="@(context.Success ? "background:#d4edda; color:#155724;" : "background:#f8d7da; color:#721c24;")">
+                    @(context.Success ? "OK" : "Error")
+                </FluentBadge>
+            </TemplateColumn>
+        </FluentDataGrid>
+    }
+</div>
+
+@code {
+    private List<AuditLog>? logs;
+    private bool isLoading = true;
+    private bool isOnLoading = false;
+    private bool isOnDeleting = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            logs = await LoadLogs();
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnLoad()
+    {
+        isOnLoading = true;
+        StateHasChanged();
+        await Task.Yield();     // deja que el render salga a pantalla
+
+        Task.Delay(1000).Wait();
+        logs = await LoadLogs();
+
+        isOnLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task OnDelete()
+    {
+        isOnDeleting = true;
+        StateHasChanged();
+        await Task.Yield();     // deja que el render salga a pantalla
+
+        Task.Delay(1000).Wait();
+        db.AuditLogs.ExecuteDelete();
+        logs = await LoadLogs();
+
+        isOnDeleting = false;
+        StateHasChanged();
+    }
+    private async Task<List<AuditLog>> LoadLogs()
+    {
+        var auditLogs = await db.AuditLogs
+            .OrderByDescending(a => a.Timestamp)
+            .Take(200)
+            .ToListAsync();
+
+        return auditLogs;
+    }
+}

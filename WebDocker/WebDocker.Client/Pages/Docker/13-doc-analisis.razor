@@ -1,0 +1,216 @@
+@page "/docker/doc-analisis"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Análisis funcional y técnico — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-metodologia" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Metodología</FluentAnchor>
+            <span class="doc-progress">13 / 23</span>
+            <FluentAnchor Href="/docker/doc-desarrollo" Appearance="Appearance.Lightweight">Desarrollo <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Análisis funcional y técnico</h1>
+        </header>
+
+        <article class="doc-content">
+            <h2 class="doc-h2">Análisis Funcional</h2>
+            <h3 class="doc-h3">Propósito y alcance</h3>
+            <p class="doc-p">Este apartado recoge el análisis funcional de WebDocker, una aplicación web hecha con Blazor .NET 10.0 que permite gestionar contenedores Docker en servidores remotos desde el navegador. Se cubren los flujos de usuario, los módulos, actores, roles, navegación, la integración con la Docker API, el panel de administración de usuarios, roles y la gestión de servidores Docker.</p>
+            <p class="doc-p">Las extensiones posteriores, API REST con JWT, autorización por permisos, gestión de imágenes, volúmenes y redes desde la interfaz, contenedorización con Docker y pruebas, se detallan en el capítulo Desarrollo.</p>
+            <p class="doc-p">En concreto el proyecto permite registrar y gestionar conexiones a múltiples servidores Docker remotos con soporte para TLS, gestionar contenedores (crear, iniciar, parar, reiniciar y eliminar), ver información del Docker Engine (versión, API, sistema operativo, arquitectura y recursos), crear contenedores configurando imagen, puertos, variables de entorno y comandos, administrar usuarios y roles con control de acceso RBAC, e incluir contenido educativo sobre el proyecto WebDocker dentro de la propia aplicación. Se utiliza autenticación mixta, cookies de Identity en la web y JWT en la API, y autorización RBAC basada en permisos finos agrupados en roles.</p>
+            
+            <h3 class="doc-h3">Usuarios objetivo</h3>
+            <p class="doc-p">• Desarrolladores que gestionen contenedores en entornos de desarrollo y pruebas.</p>
+            <p class="doc-p">• Administradores de sistemas con contenedores Docker en varios servidores.</p>
+            <p class="doc-p">• Estudiantes o profesionales que quieran aprender Docker de forma práctica.</p>
+            
+            <h3 class="doc-h3">Arquitectura por capas</h3>
+            <p class="doc-p">La aplicación se organiza en tres capas (presentación, lógica de negocio y datos), la Tabla resume, además, la pila tecnológica de cada una junto con las piezas transversales (UI, integración con Docker y seguridad).</p>
+            
+            <br />
+            <table class="doc-table">
+                <caption>Arquitectura por capas</caption>
+                <thead>
+                    <tr>
+                        <th>Capa</th>
+                        <th>Tecnología</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Presentación</td>
+                        <td>Blazor Web App (Server + WebAssembly)</td>
+                        <td>Renderizado modo Server (predominante) y WebAssembly</td>
+                    </tr>
+                    <tr>
+                        <td>Lógica de negocio</td>
+                        <td>ASP.NET Core 10.0</td>
+                        <td>Servicios, autenticación/autorización e integración con Docker</td>
+                    </tr>
+                    <tr>
+                        <td>Datos</td>
+                        <td>Entity Framework Core 10.0 + SQLite</td>
+                        <td>Persistencia mediante EF Core sobre SQLite</td>
+                    </tr>
+                    <tr>
+                        <td>UI Framework</td>
+                        <td>Microsoft Fluent UI 4.14</td>
+                        <td>Componentes visuales (DataGrid, Accordion, Cards)</td>
+                    </tr>
+                    <tr>
+                        <td>Docker</td>
+                        <td>Docker.DotNet 3.125 (+ Docker.DotNet.X509)</td>
+                        <td>Comunicación con la API del Docker Engine, con TLS mutuo</td>
+                    </tr>
+                    <tr>
+                        <td>Seguridad</td>
+                        <td>Cookie de Identity + JWT + RBAC</td>
+                        <td>Autenticación mixta (cookie en la web, JWT en la API); autorización por permisos finos agrupados en roles</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <h3 class="doc-h3">Actores del sistema</h3>
+            <p class="doc-p">Hay tres tipos de usuario, que encajan en el esquema RBAC del modelo de datos. Cada rol agrupa una serie de permisos por acción y recurso, y la jerarquía va de menos a más, el usuario anónimo solo puede acceder a páginas públicas, el usuario autenticado gestiona sus propios servidores y contenedores, y el administrador, además de heredar todos esos permisos, gestiona usuarios y roles del sistema.</p>
+            <p class="doc-p">Estos tres actores y sus permisos se resumen en la Tabla</p>
+
+            <br />
+            <table class="doc-table">
+                <caption>Actores del sistema</caption>
+                <thead>
+                    <tr>
+                        <th>Actor</th>
+                        <th>Descripción</th>
+                        <th>Permisos</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Anónimo</td>
+                        <td>Usuario no autenticado que accede a la aplicación.</td>
+                        <td>Ver Home (contenido educativo) y acceder a páginas públicas (Login, Register, Learning).</td>
+                    </tr>
+                    <tr>
+                        <td>Usuario</td>
+                        <td>Usuario autenticado con rol básico. Inicia sesión con usuario y contraseña (cookie de Identity en la web, token JWT en la API).</td>
+                        <td>Acceso a la zona protegida, visualización de contenido Docker, gestión de perfil, gestión de sus propios servidores Docker y gestión de contenedores.</td>
+                    </tr>
+                    <tr>
+                        <td>Administrador</td>
+                        <td>Usuario con privilegios completos. Tiene asignados todos los permisos del esquema.</td>
+                        <td>Todos los permisos de Usuario más el panel de administración de usuarios (CRUD) y la gestión de roles del sistema.</td>
+                    </tr>
+                </tbody>
+            </table>
+
+
+            <h3 class="doc-h3">Módulos funcionales</h3>
+            <p class="doc-p">A efectos de la interfaz, la aplicación se organiza en cinco áreas funcionales (distintas de los cinco módulos de desarrollo descritos en la Metodología) que cubren toda la operativa de la plataforma.</p>
+            <p class="doc-p">• Módulo de Autenticación y Gestión de Cuentas: registro, login, logout y gestión de perfil. En la interfaz web la sesión se mantiene con una cookie de Identity, un cliente externo de la API, en cambio, recibe un JWT en el login y lo adjunta en cada petición posterior.</p>
+            <p class="doc-p">• Módulo de Gestión de Servidores Docker: permite registrar, probar y gestionar conexiones a servidores Docker remotos. Es la parte central de la aplicación.</p>
+            <p class="doc-p">• Módulo de Administración: solo accesible para administradores. Permite gestionar usuarios y roles del sistema.</p>
+            <p class="doc-p">• Módulo Docker Learning (contenido educativo): material de apoyo embebido en la aplicación sobre Docker.</p>
+            <p class="doc-p">• Módulo de Navegación: barra lateral (NavMenu) y barra superior de acciones (NavMenuActions) que se adaptan al rol del usuario.</p>
+            
+            <h3 class="doc-h3">Casos de uso principales</h3>
+            <p class="doc-p">Los casos de uso se organizan por actor. El usuario anónimo accede a las páginas públicas (login, registro, contenido educativo). El usuario autenticado registra y gestiona sus propios servidores Docker, gestiona el ciclo de vida de los contenedores, consulta imágenes/volúmenes/redes y modifica sus datos de cuenta. El administrador, además, crea y elimina usuarios, reasigna roles y ajusta los permisos efectivos del sistema.</p>
+            
+            <h3 class="doc-h3">Modelo de datos</h3>
+            <p class="doc-p">La base de datos usa Entity Framework Core con SQLite. El modelo tiene las tablas del esquema RBAC (Users, Roles, UserRoles, Permissions, RolePermissions), la de auditoría (AuditLogs), la de renovación de tokens (RefreshTokens) y la entidad propia DockerServer.</p>
+            <p class="doc-p">La entidad propia DockerServer guarda la información mínima necesaria para conectarse a un Docker Engine remoto, nombre, host, puerto, sistema operativo y bandera de TLS. La entidad AppUser extiende IdentityUser de ASP.NET Core Identity, por ahora sin campos extra. La relación usuario–servidor es 1:N con borrado en cascada.</p>
+            
+            <h3 class="doc-h3">Alcance funcional del proyecto</h3>
+            <p class="doc-p">El alcance cubre la operativa completa sobre el motor Docker a través de Docker.DotNet, crear, arrancar, parar, reiniciar y eliminar contenedores. También el registro de varios servidores Docker remotos, con soporte TLS incluido. El panel de administración lleva el CRUD de usuarios y roles, y tanto la Home como la navegación cambian según el rol de quien entra.</p>
+            <p class="doc-p">La tabla recoge todos los módulos de la plataforma.</p>
+
+            <br />
+            <table class="doc-table">
+                <caption>Módulos de alcance del proyecto</caption>
+                <thead>
+                    <tr>
+                        <th>Módulo</th>
+                        <th>Descripción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Autenticación</td><td>Registro, inicio de sesión y emisión de JWT para la API.</td></tr>
+                    <tr><td>Gestión de Cuentas</td><td>Perfil de usuario y autenticación.</td></tr>
+                    <tr><td>Gestión de Servidores Docker</td><td>CRUD de servidores remotos, con test de conexión y TLS.</td></tr>
+                    <tr><td>Gestión de Contenedores</td><td>Ciclo de vida completo: crear, iniciar, parar, reiniciar, pausar/reanudar y eliminar.</td></tr>
+                    <tr><td>Administración de Usuarios</td><td>CRUD completo, protegiendo al usuario administrador.</td></tr>
+                    <tr><td>Administración de Roles</td><td>CRUD de roles del sistema y asignación de permisos.</td></tr>
+                    <tr><td>Docker Learning</td><td>Contenido educativo: documento.</td></tr>
+                    <tr><td>Navegación</td><td>Menús que se adaptan al rol del usuario.</td></tr>
+                    <tr><td>Monitorizar recursos</td><td>Estadísticas de CPU y memoria de los contenedores (Docker stats), obtenidas bajo demanda.</td></tr>
+                    <tr><td>Gestión de Imágenes</td><td>Listado y administración de imágenes Docker.</td></tr>
+                    <tr><td>Gestión de Volúmenes</td><td>Operaciones sobre volúmenes desde la interfaz.</td></tr>
+                    <tr><td>Gestión de Redes</td><td>Consulta y gestión de redes Docker.</td></tr>
+                </tbody>
+            </table>
+
+            
+            <h2 class="doc-h2">Análisis Técnico</h2>
+            <h3 class="doc-h3">Visión general y arquitectura</h3>
+            <p class="doc-p">WebDocker es una aplicación web full-stack sobre ASP.NET Core 10.0 que combina renderizado en servidor (Blazor Server) con interactividad en el cliente (WebAssembly). Permite gestionar varios servidores Docker remotos desde una interfaz gráfica con Microsoft Fluent UI, en lugar de usar la línea de comandos.</p>
+            <p class="doc-p">La aplicación usa los modelos de renderizado de Blazor .NET 10.0. modo Server (predominante) y WebAssembly. Las páginas de autenticación, administración y gestión de Docker se renderizan en el servidor (SSR) y mantienen acceso directo a la base de datos y servicios. Los componentes del cliente se ejecutan en el navegador (WebAssembly), lo que quita carga al servidor. El estado de autenticación se propaga del servidor al cliente mediante la serialización del estado de autenticación (AddAuthenticationStateSerialization / AddAuthenticationStateDeserialization) para que ambos modos compartan el estado del usuario.</p>
+            
+            <h3 class="doc-h3">Pila tecnológica</h3>
+            <p class="doc-p">El servidor corre sobre ASP.NET Core 10.0 con Blazor y Microsoft Fluent UI para los componentes visuales. Entity Framework Core 10.0 hace de ORM, con SQLite como proveedor de base de datos. La comunicación con el motor de Docker se hace a través de Docker.DotNet, que envuelve la API REST del daemon. La parte cliente añade Bootstrap y Bootstrap Icons.</p>
+            
+            <h3 class="doc-h3">Autenticación y autorización</h3>
+            <p class="doc-p">Para el acceso a la API, la autenticación va por tokens JWT que emite la propia API tras el login (POST /api/auth/login), la interfaz web, en cambio, usa cookie de Identity. Un cliente de la API guarda el token y lo adjunta en la cabecera Authorization Bearer en cada petición. El backend valida la firma con AddJwtBearer y se queda con los claims que necesita, id de usuario, roles y permisos (estos últimos son la base del control de acceso RBAC).</p>
+            <p class="doc-p">La autorización va por RBAC con permisos finos. Cada rol agrupa un conjunto de permisos cerrados (servers.read, containers.write, images.read, etc.) y el JWT que se emite tras el login lleva esos permisos como claims. Los controladores REST decoran sus acciones con un atributo propio ([RequirePermission]) que pide el permiso necesario; no se valida contra el rol directamente, así que añadir un permiso nuevo no obliga a tocar el código de autorización.</p>
+            
+            <h3 class="doc-h3">Modelo de datos y persistencia</h3>
+            <p class="doc-p">La base de datos tiene las tablas del esquema RBAC (Users, Roles, UserRoles, Permissions, RolePermissions), la de auditoría (AuditLogs) y la de renovación de tokens (RefreshTokens). Y una tabla propia, DockerServers. El DbContext (AppDbContext) configura todas las entidades de Identity. Hay índices sobre email, nombre de usuario y nombre de rol para acelerar las búsquedas habituales.</p>
+            
+            <h3 class="doc-h3">Capa de servicios</h3>
+            <p class="doc-p">La capa de servicio es la que habla con Docker. Por debajo usa Docker.DotNet, una librería que envuelve la API del Docker Engine y que evita montar las llamadas HTTP a mano. Se registra como Scoped en el contenedor de inyección de dependencias (DI), así cada petición trabaja con su propia instancia.</p>
+            <p class="doc-p">El acceso a datos se realiza con Entity Framework Core desde la capa de servicios (DockerServerService). No se ha añadido una capa Repository adicional entre el servicio y el DbContext, porque EF Core ya implementa de serie los patrones Repository (cada DbSet actúa como repositorio) y Unit of Work (el propio DbContext); envolver eso en otra clase de repositorio sería duplicar una abstracción existente. Para un CRUD de cuatro operaciones y un proyecto de este tamaño, esa capa extra solo añadiría código sin aportar valor.</p>
+            <p class="doc-p">¿Y si algo falla? Todos los métodos del DockerEngineService van dentro de un try-catch. Si la conexión se cae o el servidor no responde, el método devuelve un valor por defecto (una lista vacía, un null) en lugar de lanzar la excepción hacia arriba. Así la interfaz no se rompe, aunque tiene un coste, ahora mismo esos errores no se registran en ningún sitio. Lo dejo apuntado como posible mejora.</p>
+            
+            <h3 class="doc-h3">Análisis de seguridad</h3>
+            <p class="doc-p">La plataforma incorpora los controles habituales para una aplicación web sobre Identity, HTTPS extremo a extremo, validación antiforgery en formularios (cada formulario lleva un token oculto que genera el servidor, si el envío llega sin ese token o con uno que no coincide, se rechaza. Así se evita que una web externa envíe formularios aprovechando la sesión abierta del usuario, ataques CSRF. En Blazor esto viene activado de serie con el middleware de antiforgery), autorización por permisos (RBAC) y por roles con [Authorize] y soporte de TLS en las conexiones a los engines remotos. En conjunto, el nivel de seguridad se sitúa en la línea de lo que ofrecen herramientas equivalentes como Portainer en su configuración básica —autenticación, control de acceso por roles y cifrado en tránsito—, lo que lo hace adecuado para un entorno interno o de equipo. Para un despliegue en producción expuesto a Internet, en cambio, sería necesario completar antes el endurecimiento descrito (lockout, rate limiting y logging estructurado) para considerarlo plenamente listo.</p>
+            <p class="doc-p">El diseño de seguridad contempla líneas de endurecimiento futuras como el bloqueo de cuenta por intentos fallidos (lockout), una política de contraseñas reforzada, rate limiting (limitar el número de peticiones que acepta el servidor por cliente y periodo de tiempo, para frenar fuerza bruta y abusos) en los endpoints sensibles, y logging estructurado con auditoría de acciones (registrar los eventos como datos con campos —usuario, acción, fecha, resultado— y dejar rastro de las operaciones sensibles, quién hizo qué y cuándo).</p>
+            <p class="doc-p">La tabla recoge los controles principales.</p>
+
+            <br />
+            <table class="doc-table">
+                <caption>Controles de seguridad del proyecto</caption>
+                <thead>
+                    <tr>
+                        <th>Control</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td>Autenticación de la API (JWT)</td><td>JWT firmado, con token de acceso de vida limitada (60 min, configurable) y refresh token (7 días) para renovar.</td></tr>
+                    <tr><td>Revalidación de sesión</td><td>Security stamp verificado cada 30 minutos contra la base de datos.</td></tr>
+                    <tr><td>Tokens antiforgery</td><td>Middleware UseAntiforgery() activo, los formularios POST incluyen token antiforgery.</td></tr>
+                    <tr><td>HTTPS / HSTS</td><td>Redirección HTTP→HTTPS y cabecera HSTS (30 días) en producción.</td></tr>
+                    <tr><td>Aislamiento de datos por usuario</td><td>Los servidores Docker se filtran por UserId en cada consulta.</td></tr>
+                    <tr><td>Protección de entidades críticas</td><td>El usuario administrador y los roles del sistema (Administrador, Usuario) no se pueden eliminar.</td></tr>
+                    <tr><td>Cascade delete</td><td>Al eliminar un usuario se borran automáticamente sus servidores Docker.</td></tr>
+                    <tr><td>TLS con el Docker Engine</td><td>Conexión por TLS mutuo (certificados CA y de cliente), activada con el flag UseTls.</td></tr>
+                    <tr><td>Timeouts en la API de Docker</td><td>La mayoría de operaciones entre 10 y 30 seg.</td></tr>
+                </tbody>
+            </table>
+
+            <h3 class="doc-h3">Resumen técnico</h3>
+            <p class="doc-p">WebDocker queda como una aplicación full-stack sobre ASP.NET Core 10.0, con interfaz en Blazor Web App (render Server y WebAssembly, predominando Server), EF Core con SQLite para los datos y Docker.DotNet para hablar con los engines. La seguridad se apoya en autenticación mixta (cookie de Identity en la web y JWT en la API), RBAC con permisos finos, y el resto de controles de la tabla anterior. Como líneas de endurecimiento para producción pendientes quedan el lockout de cuentas, el rate limiting, el logging estructurado y las pruebas de integración/extremo a extremo.</p>
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-metodologia" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Metodología</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-desarrollo" Appearance="Appearance.Lightweight">Desarrollo <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

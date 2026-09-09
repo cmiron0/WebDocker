@@ -1,0 +1,38 @@
+/* CSS for NavActionDoc component */
+
+/* Menú, grupos e items sin fondo propio: se ve el degradado de la sidebar */
+::deep .fluent-nav-menu,
+::deep .fluent-nav-menu .fluent-nav-group,
+::deep .fluent-nav-menu .fluent-nav-link,
+::deep .fluent-nav-menu .expander-content {
+    background: transparent !important;
+}
+
+::deep .fluent-nav-menu .fluent-nav-text {
+    color: #d7d7d7;
+}
+
+::deep .fluent-nav-item .fluent-nav-link .fluent-nav-text {
+    color: unset;
+}
+
+::deep .fluent-nav-item .fluent-nav-link {
+    color: #d7d7d7;
+    background: none;
+    border: none;
+    border-radius: 4px;
+    height: 3rem;
+    display: flex;
+    align-items: center;
+    line-height: 3rem;
+    width: 100%;
+}
+
+::deep .fluent-nav-item .fluent-nav-link.active {
+        background-color: rgba(255,255,255,0.37);
+    }
+
+::deep .fluent-nav-item .fluent-nav-link:hover {
+    background-color: rgba(255,255,255,0.1);
+}
+

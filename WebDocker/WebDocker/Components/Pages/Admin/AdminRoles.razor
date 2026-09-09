@@ -1,0 +1,448 @@
+@page "/admin/admroles"
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.FluentUI.AspNetCore.Components
+@using System.ComponentModel.DataAnnotations
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using WebDocker.Data
+
+@attribute [Authorize(Roles = "Administrador")]
+@rendermode InteractiveServer
+
+@inject RoleManager<IdentityRole> RoleManager
+@inject UserManager<AppUser> UserManager
+@inject IDialogService DialogService
+@inject AppDbContext db
+
+<PageTitle>Gestión de Roles</PageTitle>
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- Cabecera -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0" style="color:var(--accent-dark);">
+                <FluentIcon Value="@(new Icons.Regular.Size24.ShieldKeyhole())" Style="margin-right:8px;" />
+                Gestión de Roles
+            </h2>
+            <p class="text-muted mb-0">Administra los roles de seguridad del sistema</p>
+        </div>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@NewRol">
+            <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+            Nuevo Rol
+        </FluentButton>
+    </div>
+
+
+    <!-- Mensajes -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="mb-3">
+            <FluentMessageBar Title="@(isSuccess ? "Operación exitosa" : "Error")"
+                              Intent="@(isSuccess ? MessageIntent.Success : MessageIntent.Error)"
+                              OnDismiss="@(() => statusMessage = null)">
+                @statusMessage
+            </FluentMessageBar>
+        </div>
+    }
+
+
+    <!-- Crear, Editar Roles -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if ((IsOnNewRole) || (IsOnEditRole && workRole != null))
+    {
+        <FluentCard Style="margin-bottom:24px; border: 2px solid var(--accent-one);">
+            <h4 style="color:var(--accent-one); margin-bottom:16px;">
+                <FluentIcon Value="@(new Icons.Regular.Size20.ShieldKeyhole())" Style="margin-right:6px;" />
+                @(IsOnNewRole ? "Crear Nuevo Rol" : "Editar Rol")
+            </h4>
+
+            <EditForm Model="@workRole" OnValidSubmit="@SaveRole">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Nombre del Rol</label>
+                        <FluentTextField @bind-Value="workRole!.Name" Placeholder="Nombre del rol" Style="width:100%;" />
+                        <ValidationMessage For="@(() => workRole.Name)" />
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-2">
+                    <div class="col-12">
+                        <label class="form-label fw-bold">Permisos del rol</label>
+                        <div class="row g-2">
+                            @foreach (var perm in workRole.Permissions)
+                            {
+                                <div class="col-md-6">
+                                    <FluentCheckbox @bind-Value="perm.Selected" Label="@perm.Description" Disabled="@(perm.Code == "users.admin")" />
+                                    <span class="text-muted" style="font-size:0.8em; margin-left:6px;">@perm.Code</span>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isSaving" Disabled="@isSaving">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Save())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+                        @(IsOnNewRole ? "Crear Rol" : "Guardar Cambios")
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="@Cancel">
+                        Cancelar
+                    </FluentButton>
+                </div>
+            </EditForm>
+        </FluentCard>
+    }
+
+    <!-- Roles -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <FluentProgressRing />
+        </div>
+    }
+    else if (roles == null || roles.Count == 0)
+    {
+        <FluentCard Style="text-align:center; padding:40px;">
+            <FluentIcon Value="@(new Icons.Regular.Size24.ShieldKeyhole())" Color="Color.Neutral" />
+            <h4 class="mt-3" style="color:#6c757d;">No hay roles configurados</h4>
+            <p class="text-muted">Haz clic en "Nuevo Rol" para añadir roles al sistema.</p>
+        </FluentCard>
+    }
+    else
+    {
+        <FluentDataGrid Items="@roles.AsQueryable()" Style="width:100%;" Pagination="@pagination" TGridItem="RoleView" RowSize="DataGridRowSize.Medium">
+            <TemplateColumn Title="Rol" Sortable="true" SortBy="@(GridSort<RoleView>.ByAscending(r => r.Name))">
+                <FluentBadge Appearance="Appearance.Accent"
+                             Style="@(context.Name == "Administrador" ? "background:#c62828; color:red;" : "background:var(--accent-one); color:white;")">
+                    <FluentIcon Value="@(new Icons.Regular.Size16.ShieldKeyhole())" Color="Color.Custom" CustomColor="#FFFFFF" Style="margin-right:4px;" />
+                    @context.Name
+                </FluentBadge>
+            </TemplateColumn>
+            <PropertyColumn Property="@(r => r.UserCount)" Title="Nº Usuarios" Align="Align.Center" Sortable="true" />
+            <PropertyColumn Property="@(r => r.PermissionCount)" Title="Nº Permisos" Align="Align.Center" Sortable="true" />
+            <TemplateColumn Title="Usuarios asignados">
+                @if (context.AssignedUsers.Any())
+                {
+                    <div class="d-flex flex-wrap gap-1">
+                        @foreach (var userName in context.AssignedUsers)
+                        {
+                            <FluentBadge Appearance="Appearance.Neutral" Style="font-size:0.8em;">
+                                @userName
+                            </FluentBadge>
+                        }
+                    </div>
+                }
+                else
+                {
+                    <span class="text-muted" style="font-size:0.85em;">Sin usuarios asignados</span>
+                }
+            </TemplateColumn>
+            <TemplateColumn Title="Acciones" Align="Align.End">
+                <div class="d-flex gap-1">
+                    <FluentButton Appearance="Appearance.Outline" Title="Editar" OnClick="@(() => EditRole(context))"
+                                  Disabled="@IsProtectedRole(context.Name)">
+                        <FluentIcon Value="@(new Icons.Regular.Size16.Edit())" />
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" Title="Eliminar" OnClick="@(() => DeleteRole(context))"
+                                  Disabled="@IsProtectedRole(context.Name)">
+                        <FluentIcon Value="@(new Icons.Regular.Size16.Delete())" Color="Color.Error" />
+                    </FluentButton>
+                </div>
+            </TemplateColumn>
+        </FluentDataGrid>
+
+        <FluentPaginator State="@pagination" />
+    }
+</div>
+
+@code {
+    private List<RoleView>? roles;
+    private bool isLoading = true;
+
+    //private RoleFormModel formModel = new();
+    private bool isSuccess;
+    private string? statusMessage;
+
+    private bool IsOnNewRole = false;
+    private bool IsOnEditRole = false;
+    private RoleView? workRole = null;
+
+    //private bool showForm = false;
+    //private bool isEditing = false;
+
+    private bool isSaving = false;
+    //private string? editingRoleId;
+    private PaginationState pagination = new() { ItemsPerPage = 10 };
+
+    // Roles protegidos que no se pueden editar ni eliminar
+    private static readonly HashSet<string> ProtectedRoles = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Administrador",
+        "Usuario"
+    };
+
+    private bool IsProtectedRole(string roleName) => ProtectedRoles.Contains(roleName);
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            roles = await LoadRoles();
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<List<RoleView>> LoadRoles()
+    {
+        var roleList = RoleManager.Roles.ToList();
+        var viewRoles = new List<RoleView>();
+
+        foreach (var role in roleList)
+        {
+            var usersInRole = await UserManager.GetUsersInRoleAsync(role.Name!);
+            var permissionCount = await db.RolePermissions.CountAsync(rp => rp.RoleId == role.Id);
+
+            viewRoles.Add(new RoleView
+            {
+                Id = role.Id,
+                Name = role.Name ?? "",
+                UserCount = usersInRole.Count,
+                PermissionCount = permissionCount,
+                AssignedUsers = usersInRole.Select(u => u.UserName ?? "").ToList(),
+                Permissions = new()
+            });
+        }
+
+        return viewRoles;
+    }
+
+
+    private async Task NewRol()
+    {
+        workRole = new RoleView();
+        workRole.Permissions = await LoadPermissionView();
+        IsOnEditRole = false;
+        IsOnNewRole = true;
+        statusMessage = null;
+    }
+
+    private async Task EditRole(RoleView role)
+    {
+        workRole = new RoleView {Id= role.Id, Name = role.Name };
+        workRole.Permissions = await LoadPermissionView(role.Id);
+        IsOnEditRole = true;
+        IsOnNewRole = false;
+        statusMessage = null;
+    }
+
+    private async Task <List<PermissionView>> LoadPermissionView(string? roleId = null)
+    {
+        var allPermissions = await db.Permissions.OrderBy(p => p.Code).ToListAsync();
+
+        var assigned = roleId is null
+            ? new HashSet<int>()
+            : (await db.RolePermissions
+                  .Where(rp => rp.RoleId == roleId)
+                  .Select(rp => rp.PermissionId)
+                  .ToListAsync()).ToHashSet();
+
+        List<PermissionView> permissions = new List<PermissionView>();
+        permissions = allPermissions.Select(p => new PermissionView
+        {
+            Id = p.Id,
+            Code = p.Code,
+            Description = p.Description,
+            Selected = assigned.Contains(p.Id)
+        }).ToList();
+
+        return permissions;
+    }
+
+    private async Task SaveRole()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (IsOnNewRole)
+                await CreateRole();
+            else
+                await UpdateRole();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error inesperado: {ex.Message}";
+            isSuccess = false;
+        }
+
+        isSaving = false;
+        StateHasChanged();
+    }
+
+     private async Task CreateRole()
+     {
+        if (string.IsNullOrWhiteSpace(workRole!.Name))
+        {
+            statusMessage = "El nombre del rol es obligatorio.";
+            isSuccess = false;
+            return;
+        }
+
+        var exists = await RoleManager.RoleExistsAsync(workRole.Name);
+        if (exists)
+        {
+            statusMessage = $"El rol '{workRole.Name}' ya existe.";
+            isSuccess = false;
+            return;
+        }
+
+        var role = new IdentityRole(workRole.Name);
+        var result = await RoleManager.CreateAsync(role);
+        if (result.Succeeded)
+        {
+            await SaveRolePermissions(role.Id);
+            statusMessage = $"Rol '{workRole.Name}' creado correctamente.";
+            isSuccess = true;
+            IsOnNewRole = false;
+            roles = await LoadRoles();
+        }
+        else
+        {
+            statusMessage = string.Join(" | ", result.Errors.Select(e => e.Description));
+            isSuccess = false;
+        }
+     }
+
+     private async Task UpdateRole()
+    {
+        if (string.IsNullOrEmpty(workRole!.Id)) return;
+
+        var role = await RoleManager.FindByIdAsync(workRole.Id);
+        if (role == null)
+        {
+            statusMessage = "Rol no encontrado.";
+            isSuccess = false;
+            return;
+        }
+
+        if (IsProtectedRole(role.Name!))
+        {
+            statusMessage = "No se puede modificar este rol protegido del sistema.";
+            isSuccess = false;
+            return;
+        }
+
+        var oldName = role.Name;
+        role.Name = workRole.Name;
+
+        var result = await RoleManager.UpdateAsync(role);
+        if (result.Succeeded)
+        {
+            await SaveRolePermissions(role.Id);
+            statusMessage = $"Rol '{oldName}' actualizado correctamente.";
+            isSuccess = true;
+            IsOnEditRole = false;
+            roles = await LoadRoles();
+        }
+        else
+        {
+            statusMessage = string.Join(" | ", result.Errors.Select(e => e.Description));
+            isSuccess = false;
+        }
+     }
+
+    private async Task SaveRolePermissions(string roleId)
+    {
+        var existing = await db.RolePermissions.Where(rp => rp.RoleId == roleId).ToListAsync();
+        db.RolePermissions.RemoveRange(existing);
+
+        foreach (var id in workRole!.Permissions.Where(p => p.Selected).Select(p => p.Id))
+        {
+            db.RolePermissions.Add(new RolePermission { RoleId = roleId, PermissionId = id });
+        }
+        await db.SaveChangesAsync();
+    }
+
+
+    private async Task DeleteRole(RoleView role)
+    {
+        if (IsProtectedRole(role.Name))
+        {
+            statusMessage = $"No se puede eliminar el rol '{role.Name}' porque es un rol protegido del sistema.";
+            isSuccess = false;
+            return;
+        }
+
+        if (role.UserCount > 0)
+        {
+            statusMessage = $"No se puede eliminar el rol '{role.Name}' porque tiene {role.UserCount} usuario(s) asignado(s). Reasigne los usuarios primero.";
+            isSuccess = false;
+            return;
+        }
+
+        var roleMng = await RoleManager.FindByIdAsync(role.Id);
+        if (roleMng == null) return;
+
+        // Dialogo de confirmación de borrado.
+        var dlg = await DialogService.ShowConfirmationAsync($"¿Seguro que quieres borrar el rol <strong>{role.Name}</strong>?", "Borrar", "Cancelar", "Confirmar borrado");
+        var dlgResult = await dlg.Result;
+        if (dlgResult.Cancelled) return;
+
+
+        var deleteResult = await RoleManager.DeleteAsync(roleMng);
+        if (deleteResult.Succeeded)
+        {
+            statusMessage = $"Rol '{role.Name}' eliminado.";
+            isSuccess = true;
+            roles = await LoadRoles();
+        }
+        else
+        {
+            statusMessage = string.Join(" | ", deleteResult.Errors.Select(e => e.Description));
+            isSuccess = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        IsOnEditRole = false;
+        IsOnNewRole = false;
+        workRole = null;
+        statusMessage = null;
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    public class RoleView
+    {
+        public string Id { get; set; } = "";
+        [Required(ErrorMessage = "El rol es obligatorio")]
+        public string Name { get; set; } = "";
+        public int UserCount { get; set; } = 0;
+        public int PermissionCount { get; set; } = 0;
+        public List<string> AssignedUsers { get; set; } = new();
+        public List<PermissionView> Permissions { get; set; } = new();
+    }
+
+    public class PermissionView
+    {
+        public int Id { get; set; }
+        public string Code { get; set; } = "";
+        public string Description { get; set; } = "";
+        public bool Selected { get; set; }
+    }
+}

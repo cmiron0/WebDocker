@@ -1,0 +1,582 @@
+@page "/serverdetail/{ServerId:int}"
+
+@inject ApiService Api
+@inject NavigationManager Navigation
+
+<PageTitle>Servidor — WDockerClient</PageTitle>
+
+<div class="container py-4">
+
+    <button class="btn btn-link px-0 mb-3" @onclick="GoBack">← Volver a Servidores</button>
+
+    @if (loadError is not null)
+    {
+        <div class="alert alert-danger">@loadError</div>
+    }
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status" aria-hidden="true"></div>
+        </div>
+        <br />
+        <div class="d-flex justify-content-center">
+            <span class="sr-only text-primary">Cargando detalles del servidor...</span>
+        </div>
+    }
+    else if (server is not null)
+    {
+        <div class="card mb-4">
+            <div class="card-body">
+                <h1 class="h5 mb-3">@server.Name</h1>
+                <div class="row g-3">
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted d-block">Host</small>@server.Host : @server.Port
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted d-block">Sistema</small>@server.OperatingSystem
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted d-block">TLS</small>@(server.UseTls ? "Sí" : "No")
+                    </div>
+                    <div class="col-6 col-md-3">
+                        <small class="text-muted d-block">Añadido</small>@server.CreatedAt.ToString("dd/MM/yyyy HH:mm")
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2 class="h5 mb-0">Contenedores</h2>
+            <div>
+                <button class="btn btn-outline-secondary btn-sm me-2" @onclick="RefreshContainers" disabled="@isRefreshing">
+                    @(isRefreshing ? "Refrescando..." : "Refrescar")
+                </button>
+                <button class="btn btn-primary btn-sm" @onclick="NewContainer" disabled="@(!_canContainersWrite)">
+                    Nuevo contenedor
+                </button>
+            </div>
+        </div>
+
+        @if (actionMessage is not null)
+        {
+            <div class="alert @(actionOk ? "alert-success" : "alert-danger") py-2">@actionMessage</div>
+        }
+
+        @if (IsOnNewContainer)
+        {
+            <div class="card mb-3">
+                <div class="card-body">
+                    <h3 class="h6 mb-3">Nuevo contenedor</h3>
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Imagen *</label>
+                        <input class="form-control form-control-sm" @bind="newImage" placeholder="nginx:latest" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Nombre</label>
+                        <input class="form-control form-control-sm" @bind="newName" placeholder="mi-contenedor" />
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label mb-0">Puertos (host:contenedor, separados por comas)</label>
+                        <input class="form-control form-control-sm" @bind="newPorts" placeholder="8080:80, 443:443" />
+                    </div>
+                    <div class="mb-2 d-none">
+                        <label class="form-label mb-0">Variables de entorno (KEY=VALUE, una por línea)</label>
+                        <textarea class="form-control form-control-sm" rows="2" @bind="newEnv"></textarea>
+                    </div>
+                    <div class="mb-2 d-none">
+                        <label class="form-label mb-0">Comando</label>
+                        <input class="form-control form-control-sm" @bind="newCommand" placeholder="opcional" />
+                    </div>
+                    <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="autoStart" @bind="autoStart" />
+                        <label class="form-check-label" for="autoStart">Iniciar automáticamente tras crear</label>
+                    </div>
+                    <button class="btn btn-primary btn-sm" @onclick="CreateContainer" disabled="@(isCreating || !_canContainersWrite)">
+                        @(isCreating ? "Creando..." : "Crear")
+                    </button>
+                    <button class="btn btn-link btn-sm" @onclick="CancelContainer">Cancelar</button>
+                </div>
+            </div>
+        }
+
+        @if (containers.Count == 0)
+        {
+            <p class="text-muted">No hay contenedores en este servidor.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Imagen</th>
+                            <th>Estado</th>
+                            <th>Puertos</th>
+                            <th>Creado</th>
+                            <th>CPU / Memoria</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var c in containers)
+                        {
+                            <tr>
+                                <td>@c.Name</td>
+                                <td>@c.Image</td>
+                                <td><span class="badge @GetStateBadge(c.State)">@c.State</span></td>
+                                <td>@(c.Ports.Count > 0 ? string.Join(", ", c.Ports) : "-")</td>
+                                <td>@c.Created.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>
+                                    @if (containerStats.TryGetValue(c.Id, out var s))
+                                    {
+                                        <span>@s.CpuPercent % CPU</span>
+                                        <br />
+                                        <small class="text-muted">@s.MemoryUsageMb MB (@s.MemoryPercent %)</small>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                </td>
+                                <td class="text-end text-nowrap">
+                                    @if (c.State == "running")
+                                    {
+                                        <button class="btn btn-sm btn-outline-secondary me-1" title="Pausar"
+                                                disabled="@(!_canContainersWrite)" @onclick="() => PauseContainer(c.Id)">
+                                            <i class="bi bi-pause-fill"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary me-1" title="Detener"
+                                                disabled="@(!_canContainersWrite)" @onclick="() => StopContainer(c.Id)">
+                                            <i class="bi bi-stop-fill"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-secondary me-1" title="Reiniciar"
+                                                disabled="@(!_canContainersWrite)" @onclick="() => RestartContainer(c.Id)">
+                                            <i class="bi bi-arrow-clockwise"></i>
+                                        </button>
+                                    }
+                                    else if (c.State == "paused")
+                                    {
+                                        <button class="btn btn-sm btn-outline-success me-1" title="Reanudar"
+                                                disabled="@(!_canContainersWrite)" @onclick="() => UnpauseContainer(c.Id)">
+                                            <i class="bi bi-play-fill"></i>
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <button class="btn btn-sm btn-outline-success me-1" title="Iniciar"
+                                                disabled="@(!_canContainersWrite)" @onclick="() => StartContainer(c.Id)">
+                                            <i class="bi bi-play-fill"></i>
+                                        </button>
+                                    }
+                                    <button class="btn btn-sm btn-outline-secondary me-1" title="Ver detalle"
+                                            @onclick="() => ViewDetail(c.Id)"><i class="bi bi-info-circle"></i></button>
+                                    <button class="btn btn-sm btn-outline-primary me-1" title="Ver logs"
+                                            @onclick="() => ViewLogs(c.Id, c.Name)"><i class="bi bi-journal-text"></i></button>
+                                    <button class="btn btn-sm btn-outline-danger" title="Eliminar"
+                                            disabled="@(!_canContainersWrite)" @onclick="() => RemoveContainer(c.Id)">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (logs is not null)
+        {
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Logs: @logsTitle</span>
+                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="() => logs = null"></button>
+                </div>
+                <div class="card-body">
+                    <pre style="max-height: 300px; overflow: auto; white-space: pre-wrap; margin: 0;">@logs</pre>
+                </div>
+            </div>
+        }
+
+        @if (detail is not null)
+        {
+            <div class="card mt-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <span>Detalle: @detail.Name</span>
+                    <button type="button" class="btn-close" aria-label="Cerrar" @onclick="() => detail = null"></button>
+                </div>
+                <div class="card-body">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <th style="width: 260px;">ID</th>
+                                <td class="font-monospace">@(detail.Id.Length > 12 ? detail.Id.Substring(0, 12) : detail.Id)</td>
+                            </tr>
+                            <tr><th>Nombre</th><td>@detail.Name</td></tr>
+                            <tr><th>Imagen</th><td>@detail.Image</td></tr>
+                            <tr><th>Estado</th><td>@detail.Status</td></tr>
+                            <tr><th>Creado</th><td>@detail.Created.ToString("dd/MM/yyyy HH:mm:ss")</td></tr>
+                            <tr><th>Iniciado</th><td>@detail.StartedAt</td></tr>
+                            <tr><th>Plataforma</th><td>@detail.Platform</td></tr>
+                            <tr><th>Comando</th><td class="font-monospace">@string.Join(" ", detail.Command)</td></tr>
+                            <tr><th>Hostname</th><td>@detail.Hostname</td></tr>
+                            <tr><th>WorkingDir</th><td>@detail.WorkingDir</td></tr>
+                            <tr>
+                                <th>Puertos</th>
+                                <td>
+                                    @if (detail.Ports.Count == 0)
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var p in detail.Ports)
+                                        {
+                                            <div>@p</div>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Variables de entorno</th>
+                                <td style="max-height: 150px; overflow-y: auto; display: block;">
+                                    @if (detail.Environment.Count == 0)
+                                    {
+                                        <span class="text-muted">-</span>
+                                    }
+                                    else
+                                    {
+                                        @foreach (var e in detail.Environment)
+                                        {
+                                            <div class="font-monospace small">@e</div>
+                                        }
+                                    }
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [Parameter] public int ServerId { get; set; }
+
+    private WDCDockerServer? server;
+    private List<WDCContainer> containers = new();
+    private Dictionary<string, WDCContainerStats> containerStats = new();
+
+    private bool isLoading = true;
+    private bool isRefreshing;
+    private string? loadError;
+
+    private string? actionMessage;
+    private bool actionOk;
+
+    private string? logs;
+    private string logsTitle = "";
+
+    private WDCContainerDetail? detail;
+
+    private bool _canContainersWrite => Api.HasPermission("containers.write");
+
+    private void GoBack() => Navigation.NavigateTo("/serverlist");
+
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Api.IsAuthenticated)
+        {
+            Navigation.NavigateTo("/");
+            isLoading = false;
+            return;
+        }
+
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            await LoadData();
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task LoadData()
+    {
+        loadError = null;
+
+        try
+        {
+            server = await Api.GetServer(ServerId);
+            await LoadContainersStats();
+        }
+        catch
+        {
+            loadError = "No se pudieron cargar los datos del servidor. Puede que el motor Docker no esté disponible.";
+        }
+    }
+
+    private async Task RefreshContainers()
+    {
+        isRefreshing = true;
+
+        try
+        {
+            await LoadContainersStats();
+        }
+        catch
+        {
+            loadError = "No se pudieron cargar los contenedores.";
+        }
+
+        isRefreshing = false;
+    }
+
+    // Carga contenedores y estadística si estan arrancados (CPU/memoria).
+    private async Task LoadContainersStats()
+    {
+        containers = await Api.GetContainers(ServerId);
+
+        containerStats.Clear();
+        StateHasChanged();
+
+        foreach (var c in containers)
+        {
+            if (c.State == "running")
+            {
+                var s = await Api.GetStats(ServerId, c.Id);
+                if (s != null)
+                {
+                    containerStats[c.Id] = s;
+                    StateHasChanged();
+                }
+            }
+        }
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Nuevo Container
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private bool IsOnNewContainer = false;
+    private bool isCreating = false;
+
+    private string newImage = "";
+    private string newName = "";
+    private string newPorts = "";
+    private string newEnv = "";
+    private string newCommand = "";
+    private bool autoStart = true;
+
+    private void NewContainer() 
+    {
+        IsOnNewContainer = true;
+        isCreating = false;
+        StateHasChanged();
+    }
+
+    private async Task CreateContainer()
+    {
+        if (string.IsNullOrWhiteSpace(newImage))
+        {
+            actionOk = false;
+            actionMessage = "La imagen es obligatoria.";
+            return;
+        }
+
+        isCreating = true;
+        actionMessage = null;
+
+        var newContainer = new WDCContainerRequest
+        {
+            Image = newImage.Trim(),
+            Name = string.IsNullOrWhiteSpace(newName) ? null : newName.Trim(),
+            PortBindings = ParsePorts(newPorts),
+            Environment = ParseEnv(newEnv),
+            Command = ParseCommand(newCommand)
+        };
+
+        try
+        {
+            var result = await Api.CreateContainer(ServerId, newContainer);
+            actionOk = result != null && result.Success;
+            actionMessage = result != null ? result.Message : "Contenedor creado.";
+
+            if (actionOk)
+            {
+                if (autoStart && result != null && !string.IsNullOrEmpty(result.ContainerId))
+                {
+                    await Api.StartContainer(ServerId, result.ContainerId);
+                }
+                IsOnNewContainer = false;
+                newImage = "";
+                newName = "";
+                newPorts = "";
+                newEnv = "";
+                newCommand = "";
+            }
+        }
+        catch
+        {
+            IsOnNewContainer = false;
+            isCreating = false;
+            actionOk = false;
+            actionMessage = "No se pudo crear el contenedor.";
+        }
+
+        IsOnNewContainer = false;
+        isCreating = false;
+        await RefreshContainers();
+    }
+
+    private void CancelContainer()
+    {
+        IsOnNewContainer = false;
+        isCreating = false;
+        StateHasChanged();
+    }
+
+    // "8080:80, 443:443" -> { "80/tcp": "8080", "443/tcp": "443" }
+    private Dictionary<string, string>? ParsePorts(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+
+        var result = new Dictionary<string, string>();
+        foreach (var part in input.Split(','))
+        {
+            var pair = part.Split(':');
+            if (pair.Length == 2)
+            {
+                var host = pair[0].Trim();
+                var container = pair[1].Trim();
+                if (host != "" && container != "")
+                {
+                    result[container + "/tcp"] = host;
+                }
+            }
+        }
+
+        if (result.Count == 0) return null;
+        return result;
+    }
+
+    private List<string>? ParseEnv(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+
+        var result = new List<string>();
+        foreach (var env in input.Split('\n'))
+        {
+            if (env.Trim() != "")
+            {
+                result.Add(env);
+            }
+        }
+
+        if (result.Count == 0) return null;
+        return result;
+    }
+
+    private List<string>? ParseCommand(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return null;
+
+        var result = new List<string>();
+        foreach (var cmd in input.Split(' '))
+        {
+            if (cmd.Trim() != "")
+            {
+                result.Add(cmd);
+            }
+        }
+        if (result.Count == 0) return null;
+        return result;
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Acciones sobre contenedores
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private async Task StartContainer(string id) => await ActionContainer("Start", id);
+    private async Task StopContainer(string id) => await ActionContainer("Stop", id);
+    private async Task RestartContainer(string id) => await ActionContainer("Restart", id);
+    private async Task PauseContainer(string id) => await ActionContainer("Pause", id);
+    private async Task UnpauseContainer(string id) => await ActionContainer("Unpause", id);
+    private async Task RemoveContainer(string id) => await ActionContainer("Remove", id);
+
+    private async Task ActionContainer(string action, string id)
+    {
+        actionMessage = null;
+        WDCContainerOperationResponse? result = null!;
+
+        try
+        {
+            switch (action)
+            {
+                case "Start": result = await Api.StartContainer(ServerId, id); break;
+                case "Stop": result = await Api.StopContainer(ServerId, id); break;
+                case "Restart": result = await Api.RestartContainer(ServerId, id); break;
+                case "Pause": result = await Api.PauseContainer(ServerId, id); break;
+                case "Unpause": result = await Api.UnpauseContainer(ServerId, id); break;
+                case "Remove": result = await Api.RemoveContainer(ServerId, id); break;
+                default: result = new WDCContainerOperationResponse { Success = false, Message = "Not Action Defined", ContainerId = id, }; break;
+            }
+
+            actionOk = result != null && result.Success;
+            actionMessage = result != null ? result.Message : "Operación completada.";
+        }
+        catch
+        {
+            actionOk = false;
+            actionMessage = "No se pudo completar la operación (¿permiso denegado?).";
+        }
+        await RefreshContainers();
+    }
+
+
+    private async Task ViewLogs(string id, string name)
+    {
+        logsTitle = name;
+        logs = "Cargando...";
+        try
+        {
+            logs = await Api.GetLogs(ServerId, id);
+        }
+        catch
+        {
+            logs = "No se pudieron obtener los logs.";
+        }
+        if (string.IsNullOrWhiteSpace(logs)) logs = "(sin salida)";
+    }
+
+    private async Task ViewDetail(string id)
+    {
+        detail = await Api.GetContainerDetail(ServerId, id);
+        if (detail is null)
+        {
+            actionOk = false;
+            actionMessage = "No se pudo obtener el detalle del contenedor.";
+        }
+    }
+
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Helpers
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private static string GetStateBadge(string state)
+    {
+        switch (state)
+        {
+            case "running": return "bg-success";
+            case "paused": return "bg-warning text-dark";
+            case "exited": return "bg-secondary";
+            default: return "bg-secondary";
+        }
+    }
+}

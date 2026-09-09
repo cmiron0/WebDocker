@@ -1,0 +1,61 @@
+@page "/docker/doc-marco-diseno"
+@using Microsoft.FluentUI.AspNetCore.Components
+
+<PageTitle>Marco teórico · Diseño de la plataforma — WebDocker</PageTitle>
+
+<div class="doc-page">
+    <FluentCard Class="doc-card">
+
+        <div class="doc-nav">
+            <FluentAnchor Href="/docker/doc-marco-requerimientos" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Requerimientos del sistema</FluentAnchor>
+            <span class="doc-progress">8 / 23</span>
+            <FluentAnchor Href="/docker/doc-marco-implementacion" Appearance="Appearance.Lightweight">Marco teórico · Implementación <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+        <header class="doc-header">
+            <span class="doc-eyebrow">Plataforma Web para la Gestión de Contenedores Docker</span>
+            <h1 class="doc-title">Marco teórico</h1>
+            <h2 class="doc-title">Diseño de la plataforma</h2>
+        </header>
+
+        <article class="doc-content">
+            <h3 class="doc-h3">Arquitectura de Software</h3>
+            <p class="doc-p">La plataforma tendrá tres capas:</p>
+            <p class="doc-p">• Capa de presentación (frontend): la interfaz de usuario, desarrollada como una Blazor Web App de .NET, con componentes Razor que se ejecutan en modo Server (sincronizados con el navegador mediante SignalR) y en modo WebAssembly (ejecutados directamente en el cliente).</p>
+            <p class="doc-p">• Capa de aplicación (backend): aplicación ASP.NET Core 10.0 que hospeda los componentes Razor de la capa de presentación, gestiona la autenticación con ASP.NET Core Identity (cookies para la interfaz Blazor) y JWT (para los clientes programáticos), y expone una API REST. La lógica de negocio reside en servicios (DockerServerService, DockerEngineService) que traducen las peticiones a llamadas hacia el Docker Engine remoto vía Docker.DotNet, o hacia la capa de datos vía Entity Framework Core.</p>
+            <p class="doc-p">• Capa de datos (base de datos): almacena la información de la plataforma que Docker no gestiona, cuentas de usuario, roles, permisos (RBAC) y la configuración de los servidores Docker registrados.</p>
+            
+            <br />
+            <img src="images/Fig1.png" alt="Arquitectura de la plataforma" style="display:block; margin:0 auto; max-width:100%; height:auto;" />
+            <br />
+            <p class="doc-p">Cada capa puede evolucionar por separado. La capa de datos se relaciona con la de aplicación a través de EF Core, y la capa de aplicación se relaciona con los clientes externos a través de la API REST.</p>
+            <p class="doc-p">Este enfoque va en la línea de los patrones habituales para aplicaciones web modernas (Microsoft, s. f.; Milan Wittpohl, s. f.).</p>
+            
+            <h3 class="doc-h3">Interfaz de Usuario</h3>
+            <p class="doc-p">La interfaz se piensa para que sea sencilla y visual. La meta es convertir tareas que en CLI son varios comandos en algo que se resuelve con un clic, siguiendo lo que ya hacen Docker Dashboard o Portainer:</p>
+            <p class="doc-p">• Dashboard centralizado: página de inicio sencilla con el resumen del entorno, recuento de contenedores activos y detenidos.</p>
+            <p class="doc-p">• Vistas de entidades: secciones para gestionar contenedores, CRUD de contenedores. De forma opcional se podrían agregar vistas equivalentes para imágenes, volúmenes y redes.</p>
+            <p class="doc-p">• Logs: ventana dedicada a los registros, que muestra una instantánea de las últimas líneas del contenedor.</p>
+            
+            <h3 class="doc-h3">Base de Datos</h3>
+            <p class="doc-p">La base de datos guarda solo lo imprescindible para que la aplicación funcione, usuarios, roles y datos de configuración. El estado de Docker no se persiste en ningún momento, eso se consulta siempre contra el motor en tiempo real.</p>
+            <p class="doc-p">La base de datos almacenara:</p>
+            <p class="doc-p">• Usuarios: información de autenticación (nombre de usuario, contraseña hasheada) y datos personales.</p>
+            <p class="doc-p">• Roles y permisos: esquema RBAC para definir las capacidades de cada usuario. De entrada, se contemplan dos roles, administrador y usuario estándar, con margen para añadir más sin tocar código si en algún momento hace falta afinar el reparto.</p>
+            <p class="doc-p">• Configuraciones: preferencias del usuario y configuraciones de conexión.</p>
+            <p class="doc-p">• Las tablas para autenticación y autorización son Users, Roles, UserRoles, Permissions y RolePermissions, además de AuditLogs, para auditoría, RefreshTokens para renovación de JWT y DockerServers para los servidores docker.</p>
+            <p class="doc-p">El esquema de Identity relaciona usuarios y roles mediante la tabla intermedia UserRoles (una relación N:M), aunque en la práctica cada usuario tiene asignado un único rol, suficiente para el alcance del proyecto. RBAC permitirá un control granular de accesos (Microsoft, s. f.; Moldstud, s. f.).</p>
+            
+            <br />
+            <img src="images/Fig2.png" alt="Diagrama Entidad-Relación" style="display:block; margin:0 auto; max-width:100%; height:auto;" />
+            <br />
+        </article>
+
+        <div class="doc-nav doc-nav-bottom">
+            <FluentAnchor Href="/docker/doc-marco-requerimientos" Appearance="Appearance.Lightweight"><FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronLeft())" Slot="start" /> Marco teórico · Requerimientos del sistema</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-indice" Appearance="Appearance.Lightweight">Índice</FluentAnchor>
+            <FluentAnchor Href="/docker/doc-marco-implementacion" Appearance="Appearance.Lightweight">Marco teórico · Implementación <FluentIcon Value="@(new Microsoft.FluentUI.AspNetCore.Components.Icons.Regular.Size20.ChevronRight())" Slot="end" /></FluentAnchor>
+        </div>
+
+    </FluentCard>
+</div>

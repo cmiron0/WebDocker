@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="WDockerClient/WDockerClient.csproj" Id="ae66d133-1cc8-460d-86b4-8b3bd57ae16e" />
+  <Project Path="WebDocker/WebDocker.Client/WebDocker.Client.csproj" />
+  <Project Path="WebDocker/WebDocker/WebDocker.csproj" />
+</Solution>

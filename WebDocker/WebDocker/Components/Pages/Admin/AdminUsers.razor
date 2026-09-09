@@ -1,0 +1,435 @@
+@page "/admin/admusers"
+
+
+@using Microsoft.AspNetCore.Authorization
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.FluentUI.AspNetCore.Components
+@using System.ComponentModel.DataAnnotations
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using WebDocker.Data
+
+@attribute [Authorize(Roles = "Administrador")]
+@rendermode InteractiveServer
+
+@inject UserManager<AppUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject IDialogService DialogService
+
+<PageTitle>Gestión de Usuarios</PageTitle>
+
+<div class="container-fluid px-4 py-3">
+
+    <!-- Cabecera -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0" style="color:var(--accent-dark);">
+                <FluentIcon Value="@(new Icons.Regular.Size24.People())" Style="margin-right:8px;" />
+                Gestión de Usuarios
+            </h2>
+            <p class="text-muted mb-0">Administra los usuarios del sistema y sus roles</p>
+        </div>
+        <FluentButton Appearance="Appearance.Accent" OnClick="@NewUser">
+            <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+            Nuevo Usuario
+        </FluentButton>
+    </div>
+
+
+    <!-- Mensajes -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if (!string.IsNullOrEmpty(statusMessage))
+    {
+        <div class="mb-3">
+            <FluentMessageBar Title="@(isSuccess ? "Operación exitosa" : "Error")"
+                              Intent="@(isSuccess ? MessageIntent.Success : MessageIntent.Error)"
+                              OnDismiss="@(() => statusMessage = null)">
+                @statusMessage
+            </FluentMessageBar>
+        </div>
+    }
+
+
+    <!-- Crear, Editar Usuarios -->
+    <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+    @if ((IsOnNewUser) || (IsOnEditUser && workUser != null))
+    {
+        <FluentCard Style="margin-bottom:24px; border: 2px solid var(--accent-one);">
+            <h4 style="color:var(--accent-one); margin-bottom:16px;">
+                <FluentIcon Value="@(new Icons.Regular.Size20.PersonAdd())" Style="margin-right:6px;" />
+                @(IsOnNewUser ? "Crear Nuevo Usuario" : "Editar Usuario")
+            </h4>
+
+            <EditForm Model="@workUser" OnValidSubmit="@SaveUser">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Nombre de usuario</label>
+                        <FluentTextField @bind-Value="workUser!.UserName" Placeholder="usuario01" Style="width:100%;" Disabled="@IsOnEditUser" />
+                        <ValidationMessage For="@(() => workUser.UserName)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Email</label>
+                        <FluentTextField @bind-Value="workUser.Email" Placeholder="usuario@empresa.com" Style="width:100%;" />
+                        <ValidationMessage For="@(() => workUser.Email)" />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">@(IsOnEditUser ? "Nueva Contraseña (dejar vacío para no cambiar)" : "Contraseña")</label>
+                        <FluentTextField @bind-Value="workUser.Password" TextFieldType="TextFieldType.Password" Placeholder="" Style="width:100%;" />
+                        @if (!IsOnEditUser)
+                        {
+                            <ValidationMessage For="@(() => workUser.Password)" />
+                        }
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Rol</label>
+                        <FluentSelect TOption="string" @bind-Value="workUser.Role" Style="width:100%;" Position="SelectPosition.Above">
+                            @foreach (var role in allRoles)
+                            {
+                                <FluentOption TOption="string" Value="@role">@role</FluentOption>
+                            }
+                        </FluentSelect>
+                    </div>
+                    <div class="col-md-4 d-flex align-items-end">
+                        <FluentCheckbox @bind-Value="workUser.EmailConfirmed" Label="Email confirmado" />
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isSaving" Disabled="@isSaving">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Save())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+                        @(IsOnEditUser ? "Guardar Cambios" : "Crear Usuario")
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="@Cancel">
+                        Cancelar
+                    </FluentButton>
+                </div>
+            </EditForm>
+        </FluentCard>
+    }
+
+
+    <!-- Usuarios -->
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center py-5">
+            <FluentProgressRing />
+        </div>
+    }
+    else if (users == null || users.Count == 0)
+    {
+        <FluentCard Style="text-align:center; padding:40px;">
+            <FluentIcon Value="@(new Icons.Regular.Size24.ShieldKeyhole())" Color="Color.Neutral" />
+            <h4 class="mt-3" style="color:#6c757d;">No hay usuarios configurados</h4>
+            <p class="text-muted">Haz clic en "Nuevo Usuario" para añadir usuarios al sistema.</p>
+        </FluentCard>
+    }
+    else
+    {
+         <FluentDataGrid Items="@users.AsQueryable()" Style="width:100%;" Pagination="@pagination" TGridItem="UserView" RowSize="DataGridRowSize.Medium">
+            <PropertyColumn Property="@(u => u.UserName)" Title="Usuario" Sortable="true" />
+            <PropertyColumn Property="@(u => u.Email)" Title="Email" Sortable="true" />
+            <TemplateColumn Title="Rol">
+                <FluentBadge Appearance="Appearance.Accent"
+                             Style="@(context.Role == "Administrador" ? "background:#c62828; color:white;" : "background:var(--accent-one); color:white;")">
+                    @context.Role
+                </FluentBadge>
+            </TemplateColumn>
+            <TemplateColumn Title="Email Confirmado" Align="Align.Center">
+                @if (context.EmailConfirmed)
+                {
+                    <FluentIcon Value="@(new Icons.Regular.Size20.CheckmarkCircle())" Color="Color.Success" />
+                }
+                else
+                {
+                    <FluentIcon Value="@(new Icons.Regular.Size20.DismissCircle())" Color="Color.Error" />
+                }
+            </TemplateColumn>
+            <TemplateColumn Title="Acciones" Align="Align.End">
+                <div class="d-flex gap-1">
+                    <FluentButton Appearance="Appearance.Outline" Title="Editar" OnClick="@(() => EditUser(context))"
+                                  Disabled="@(context.UserName == "Admin")">
+                        <FluentIcon Value="@(new Icons.Regular.Size16.Edit())" />
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Outline" Title="Eliminar" OnClick="@(() => DeleteUser(context))"
+                                  Disabled="@(context.UserName == "Admin")">
+                        <FluentIcon Value="@(new Icons.Regular.Size16.Delete())" Color="Color.Error" />
+                    </FluentButton>
+                </div>
+            </TemplateColumn>
+        </FluentDataGrid>
+
+        <FluentPaginator State="@pagination" /> 
+    }
+</div>
+
+@code {
+    private List<UserView>? users;
+    private List<string> allRoles = new();
+    private bool isLoading = true;
+
+    private bool isSuccess;
+    private string? statusMessage;
+
+    private bool IsOnNewUser = false;
+    private bool IsOnEditUser = false;
+    private UserView? workUser = null;
+
+    // private UserFormModel formModel = new();
+    // private bool showForm = false;
+    // private bool isEditing = false;
+
+    private bool isSaving = false;
+    // private string? editingUserId;
+    private PaginationState pagination = new() { ItemsPerPage = 10 };
+
+    protected override async Task OnInitializedAsync()
+    {
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            allRoles = RoleManager.Roles.Select(r => r.Name!).OrderBy(r => r).ToList();
+            users = await LoadUsers();
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<List<UserView>> LoadUsers()
+    {
+        var userList = UserManager.Users.ToList();
+        var viewUsers = new List<UserView>();
+
+        foreach (var user in userList)
+        {
+            var roles = await UserManager.GetRolesAsync(user);
+            viewUsers.Add(new UserView
+            {
+                Id = user.Id,
+                UserName = user.UserName ?? "",
+                Email = user.Email ?? "",
+                EmailConfirmed = user.EmailConfirmed,
+                Password = "",
+                Role = roles.FirstOrDefault() ?? "(Sin rol)"
+            });
+        }
+
+        return viewUsers;
+    }
+
+    private void NewUser()
+    {
+        workUser = new UserView
+        {
+            Role = allRoles.FirstOrDefault() ?? "",
+            EmailConfirmed = true
+        };
+        IsOnEditUser = false;
+        IsOnNewUser = true;
+        statusMessage = null;
+    }
+
+    private async Task EditUser(UserView userVm)
+    {
+        var userMng = await UserManager.FindByIdAsync(userVm.Id);
+        if (userMng == null) return;
+
+        var roles = await UserManager.GetRolesAsync(userMng);
+
+        workUser = new UserView
+        {
+            UserName = userMng.UserName ?? "",
+            Email = userMng.Email ?? "",
+            Password = "",
+            Role = roles.FirstOrDefault() ?? allRoles.FirstOrDefault() ?? "",
+            EmailConfirmed = userMng.EmailConfirmed
+        };
+
+        IsOnEditUser = true;
+        IsOnNewUser = false;
+        statusMessage = null;
+    }
+
+    private async Task SaveUser()
+    {
+        isSaving = true;
+        StateHasChanged();
+
+        try
+        {
+            if (IsOnNewUser)
+                await CreateUser();
+            else
+                await UpdateUser();
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Error inesperado: {ex.Message}";
+            isSuccess = false;
+        }
+
+        isSaving = false;
+        StateHasChanged();
+    }
+
+    private async Task CreateUser()
+    {
+        if (string.IsNullOrWhiteSpace(workUser?.UserName) || string.IsNullOrWhiteSpace(workUser?.Email) || string.IsNullOrWhiteSpace(workUser?.Password))
+        {
+            statusMessage = "Todos los campos son obligatorios para crear un usuario.";
+            isSuccess = false;
+            return;
+        }
+
+        var user = new AppUser
+        {
+            UserName = workUser.UserName,
+            Email = workUser.Email,
+            EmailConfirmed = workUser.EmailConfirmed
+        };
+
+        var result = await UserManager.CreateAsync(user, workUser.Password);
+        if (!result.Succeeded)
+        {
+            statusMessage = string.Join(" | ", result.Errors.Select(e => e.Description));
+            isSuccess = false;
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(workUser.Role))
+        {
+            await UserManager.AddToRoleAsync(user, workUser.Role);
+        }
+
+        statusMessage = $"Usuario '{workUser.UserName}' creado correctamente.";
+        isSuccess = true;
+        IsOnNewUser = false;
+        users = await LoadUsers();
+    }
+
+    private async Task UpdateUser()
+    {
+        if (string.IsNullOrEmpty(workUser?.Id)) return;
+
+        var user = await UserManager.FindByIdAsync(workUser?.Id!);
+        if (user == null)
+        {
+            statusMessage = "Usuario no encontrado.";
+            isSuccess = false;
+            return;
+        }
+
+        user.Email = workUser?.Email;
+        user.EmailConfirmed = workUser?.EmailConfirmed! ?? false;
+
+        var updateResult = await UserManager.UpdateAsync(user);
+        if (!updateResult.Succeeded)
+        {
+            statusMessage = string.Join(" | ", updateResult.Errors.Select(e => e.Description));
+            isSuccess = false;
+            return;
+        }
+
+        // Cambiar contraseña
+        if (!string.IsNullOrWhiteSpace(workUser?.Password))
+        {
+            var token = await UserManager.GeneratePasswordResetTokenAsync(user);
+            var passResult = await UserManager.ResetPasswordAsync(user, token, workUser?.Password!);
+            if (!passResult.Succeeded)
+            {
+                statusMessage = string.Join(" | ", passResult.Errors.Select(e => e.Description));
+                isSuccess = false;
+                return;
+            }
+        }
+
+        // Actualizar rol
+        var currentRoles = await UserManager.GetRolesAsync(user);
+        if (currentRoles.Any())
+        {
+            await UserManager.RemoveFromRolesAsync(user, currentRoles);
+        }
+        if (!string.IsNullOrWhiteSpace(workUser?.Role))
+        {
+            await UserManager.AddToRoleAsync(user, workUser?.Role!);
+        }
+
+        statusMessage = $"Usuario '{user.UserName}' actualizado correctamente.";
+        isSuccess = true;
+        IsOnEditUser = false;
+        users =await LoadUsers();
+    }
+
+    private async Task DeleteUser(UserView user)
+    {
+        if (user.UserName == "Admin")
+        {
+            statusMessage = "No se puede eliminar el usuario Administrador principal.";
+            isSuccess = false;
+            return;
+        }
+
+        var userMng = await UserManager.FindByIdAsync(user.Id);
+        if (userMng == null) return;
+
+        // Dialogo de confirmación de borrado.
+        var dlg = await DialogService.ShowConfirmationAsync($"¿Seguro que quieres borrar el usuario <strong>{user.UserName}</strong>?", "Borrar", "Cancelar", "Confirmar borrado");
+        var dlgResult = await dlg.Result;
+        if (dlgResult.Cancelled) return;
+        
+        var result = await UserManager.DeleteAsync(userMng);
+        if (result.Succeeded)
+        {
+            statusMessage = $"Usuario '{user.UserName}' eliminado.";
+            isSuccess = true;
+            users = await LoadUsers();
+        }
+        else
+        {
+            statusMessage = string.Join(" | ", result.Errors.Select(e => e.Description));
+            isSuccess = false;
+        }
+    }
+
+    private void Cancel()
+    {
+        IsOnNewUser = false;
+        IsOnEditUser = false;
+        workUser = null;
+        statusMessage = null;
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    public class UserView
+    {
+        public string Id { get; set; } = "";
+
+        [Required(ErrorMessage = "El usuario es obligatorio")]
+        public string UserName { get; set; } = "";
+
+        [Required]
+        [EmailAddress(ErrorMessage = "Email no válido")]
+        public string Email { get; set; } = "";
+
+        public bool EmailConfirmed { get; set; }
+
+        [Required]
+        [StringLength(10, MinimumLength = 4, ErrorMessage = "Entre 4 y 10 caracteres")]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        public string Role { get; set; } = "";
+    }
+
+}
