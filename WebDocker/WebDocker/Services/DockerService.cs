@@ -183,8 +183,7 @@ public class DockerService
     /// <summary>
     /// Crea un nuevo contenedor.
     /// </summary>
-    public async Task<(bool Success, string Message, string? ContainerId)> CreateContainer(
-        DockerServer server, CreateContainerParameters parameters)
+    public async Task<(bool Success, string Message, string? ContainerId)> CreateContainer(DockerServer server, CreateContainerParameters parameters)
     {
         try
         {
@@ -378,7 +377,7 @@ public class DockerService
         try
         {
             using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
 
             ContainerStatsResponse? sample = null;
 
@@ -386,7 +385,7 @@ public class DockerService
             // necesarios para calcular el % de CPU). Docker.DotNet la entrega por IProgress.
             await client.Containers.GetContainerStatsAsync(
                 containerId,
-                new ContainerStatsParameters { Stream = false },
+                new ContainerStatsParameters { Stream = true },
                 new Progress<ContainerStatsResponse>(s => sample = s),
                 cts.Token);
 
@@ -435,7 +434,7 @@ public class DockerService
         {
             using var client = CreateClient(server);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            return await client.Images.ListImagesAsync(new ImagesListParameters { All = false }, cts.Token);
+            return await client.Images.ListImagesAsync(new ImagesListParameters { All = true }, cts.Token);
         }
         catch
         {
@@ -594,8 +593,7 @@ public class DockerService
         {
             using var client = CreateClient(server);
             using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var response = await client.Networks.CreateNetworkAsync(
-                new NetworksCreateParameters { Name = name, Driver = driver }, cts.Token);
+            var response = await client.Networks.CreateNetworkAsync(new NetworksCreateParameters { Name = name, Driver = driver }, cts.Token);
             return (true, $"Red {name} creada", response.ID);
         }
         catch (Exception ex)
