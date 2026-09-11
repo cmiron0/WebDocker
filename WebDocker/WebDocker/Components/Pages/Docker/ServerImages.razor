@@ -4,6 +4,7 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
 @using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
+@using System.Formats.Tar;
 
 @using global::Docker.DotNet.Models
 @using WebDocker.Data
@@ -414,7 +415,7 @@
             return; 
         }
         if (server == null) return;
-        
+
         // Dialogo de confirmación de borrado.
         var dlg = await DialogService.ShowConfirmationAsync($"¿Seguro que quieres borrar la imagen <strong>{ShortId(imageId)}</strong>?", "Borrar", "Cancelar", "Confirmar borrado");
         var result = await dlg.Result;
@@ -422,7 +423,7 @@
 
         var (success, message) = await DockerService.RemoveImage(server, imageId);
         ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
-        
+
         if (success) {
             //images = await LoadImages();
             await RefreshImages();
@@ -490,4 +491,20 @@
             StateHasChanged();
         }
     }
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Build Image
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private static readonly string[] ExclusinesPorDefecto =
+        [ ".git", ".vs", ".vscode", ".idea", "bin", "obj", "node_modules", "TestResults"];
+
+
+    private static Stream CrearContextoTar(string contextoDir, IEnumerable<string>? exclusionesExtra = null)
+    {
+        return null!;
+    }
+
+
+
+
 }
