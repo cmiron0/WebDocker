@@ -103,7 +103,7 @@
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
-                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isSaving" Disabled="@isSaving">
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isSaving" Disabled="@(isSaving || IsProtectedUser(workUser!.UserName))">
                         <FluentIcon Value="@(new Icons.Regular.Size20.Save())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
                         @(IsOnEditUser ? "Guardar Cambios" : "Crear Usuario")
                     </FluentButton>
@@ -155,11 +155,11 @@
             <TemplateColumn Title="Acciones" Align="Align.End">
                 <div class="d-flex gap-1">
                     <FluentButton Appearance="Appearance.Outline" Title="Editar" OnClick="@(() => EditUser(context))"
-                                  Disabled="@(context.UserName == "Admin")">
+                                  Disabled="@false"> @* IsProtectedUser(context.UserName)"> *@
                         <FluentIcon Value="@(new Icons.Regular.Size16.Edit())" />
                     </FluentButton>
                     <FluentButton Appearance="Appearance.Outline" Title="Eliminar" OnClick="@(() => DeleteUser(context))"
-                                  Disabled="@(context.UserName == "Admin")">
+                                  Disabled="@IsProtectedUser(context.UserName)">
                         <FluentIcon Value="@(new Icons.Regular.Size16.Delete())" Color="Color.Error" />
                     </FluentButton>
                 </div>
@@ -189,6 +189,17 @@
     private bool isSaving = false;
     // private string? editingUserId;
     private PaginationState pagination = new() { ItemsPerPage = 10 };
+
+
+    // Usuarios protegidos que no se pueden editar ni eliminar
+    private static readonly HashSet<string> ProtectedUsers = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "Admin",
+        "User"
+    };
+
+    private bool IsProtectedUser(string userName) => ProtectedUsers.Contains(userName);
+
 
     protected override async Task OnInitializedAsync()
     {
