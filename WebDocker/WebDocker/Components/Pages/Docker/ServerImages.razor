@@ -34,6 +34,8 @@
         </FluentButton>
     </div>
 
+    <hr />
+
 
     <!-- Imagenes -->
     <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
@@ -51,26 +53,138 @@
     {
         <h2>Imágenes de @server.Name</h2>
 
-        <div class="d-flex gap-2 my-3">
-            <FluentTextField @bind-Value="pullImageName" Placeholder="imagen:tag (ej. nginx:latest)" />
-            <FluentButton Appearance="Appearance.Accent" OnClick="@PullImage" Disabled="@(isPulling || !_canWrite)">
-                @(isPulling ? "Descargando..." : "Descargar imagen")
-            </FluentButton>
+        <!-- Botones de acciones imagenes -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 style="color:var(--acento-oscuro); margin:0;">
+                <FluentIcon Value="@(new Icons.Regular.Size24.BoxMultiple())" Style="margin-right:6px;" />
+                Imagenes (@(images?.Count ?? 0))
+            </h4>
+            <div class="d-flex gap-2">
+                <FluentButton Appearance="Appearance.Outline" OnClick="@RefreshImages" Loading="@isRefreshing">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.ArrowSync())" Slot="start" />
+                    Refrescar
+                </FluentButton>
+                <FluentButton Appearance="Appearance.Accent" OnClick="@NewImage" Disabled="@(!isConnected || !_canWrite)">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+                    Nueva Imagen
+                </FluentButton>
+            </div>
         </div>
 
-        <!-- Cargar imagen desde un fichero .tar (equivalente a 'docker load'). -->
-        <div class="d-flex gap-2 my-3 align-items-center">
-            <label class="fw-bold mb-0">Cargar desde .tar:</label>
-            <InputFile OnChange="@OnTarSelected" accept=".tar" disabled="@(isLoadingTar || !_canWrite)" />
-            @if (isLoadingTar)
-            {
-                <FluentProgressRing style="width:20px; height:20px;" />
-                <span class="text-muted">Cargando imagen...</span>
-            }
-        </div>
+
+        <!-- Crear imagenes -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        @if (IsOnNewImage)
+        {
+            <FluentCard Style="margin-bottom:16px; border: 2px solid var(--Amarillo);">
+                <h5 style="color:var(--Dark-Amarillo); margin-bottom:12px;">
+                    <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Style="margin-right:6px;" />
+                    Crear nueva imagen (Docker Hub)
+                </h5>
+
+                <!-- Descargar desde repositorio. -->
+                <FluentCard Style="margin-bottom:16px; border: 2px solid var(--accent-one);">
+                    <h5 style="color:var(--Dark-Amarillo); margin-bottom:12px;">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Style="margin-right:6px;" />
+                        Descargar imagen 
+                    </h5>
+
+                    <div class="d-flex gap-2 my-3">
+                        <FluentTextField @bind-Value="pullImageName" Placeholder="imagen:tag (ej. nginx:latest)" />
+                        <FluentButton Appearance="Appearance.Accent" OnClick="@PullImage" Disabled="@(isPulling || !_canWrite)">
+                            @(isPulling ? "Descargando..." : "Descargar imagen")
+                        </FluentButton>
+                    </div>
+                </FluentCard>
+
+               <!-- Cargar imagen desde un fichero .tar (equivalente a 'docker load'). -->
+               <FluentCard Style="margin-bottom:16px; border: 2px solid var(--accent-two);">
+                    <h5 style="color:var(--Dark-Amarillo); margin-bottom:12px;">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Style="margin-right:6px;" />
+                        Cargar imagen desde fichero .tar
+                    </h5>
+
+                    <div class="d-flex gap-2 my-3 align-items-center">
+                        <label class="fw-bold mb-0">Cargar desde .tar:</label>
+                        <InputFile OnChange="@OnTarSelected" accept=".tar" disabled="@(isLoadingTar || !_canWrite)" />
+                        @if (isLoadingTar)
+                        {
+                            <FluentProgressRing style="width:20px; height:20px;" />
+                            <span class="text-muted">Cargando imagen...</span>
+                        }
+                    </div>
+                </FluentCard>
 
 
-        @if (images.Count == 0)
+                <!-- Build image -->
+                <FluentCard Style="margin-bottom:16px; border: 2px solid var(--accent-four);">
+                    <h5 style="color:var(--Dark-Amarillo); margin-bottom:12px;">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Style="margin-right:6px;" />
+                        Generar imagen
+                    </h5>
+
+                </FluentCard>
+
+
+
+
+                @*             <EditForm Model="@newContainer" OnValidSubmit="@CreateContainer">
+                <DataAnnotationsValidator />
+
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Nombre del contenedor</label>
+                        <FluentTextField @bind-Value="newContainer.Name" Placeholder="mi-contenedor" Style="width:100%;" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Imagen</label>
+                        <FluentTextField @bind-Value="newContainer.Image" Placeholder="nginx:latest" Style="width:100%;" />
+                        <ValidationMessage For="@(() => newContainer.Image)" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold">Puertos (host:container)</label>
+                        <FluentTextField @bind-Value="newContainer.Ports" Placeholder="8080:80, 443:443" Style="width:100%;" />
+                    </div>
+                </div>
+
+                <div class="row g-3 mt-1">
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Variables de entorno (KEY=VALUE, una por línea)</label>
+                        <div @onkeydown:stopPropagation="true">
+                            <FluentTextArea @bind-Value="newContainer.EnvVars" Placeholder="MYSQL_ROOT_PASSWORD=secret&#10;MYSQL_DATABASE=mydb" Rows="3"  Style="width:100%;" />
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold">Comando (opcional)</label>
+                        <FluentTextField @bind-Value="newContainer.Command" Placeholder="/bin/bash" Style="width:100%;" />
+                        <div class="mt-2">
+                            <FluentCheckbox @bind-Value="newContainer.AutoStart" Label="Iniciar automáticamente tras crear" />
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex gap-2 mt-3">
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isCreating" Disabled="@(isCreating || !_canContainersWrite)">
+                        <FluentIcon Value="@(new Icons.Regular.Size20.Play())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
+                        Crear Contenedor
+                    </FluentButton>
+                    <FluentButton Appearance="Appearance.Stealth" OnClick="@CancelNewContainer">
+                        Cancelar
+                    </FluentButton>
+                </div>
+            </EditForm> *@
+
+                <FluentButton Appearance="Appearance.Stealth" OnClick="@CancelNewImage">
+                    Cancelar
+                </FluentButton>
+            </FluentCard>
+        }
+
+
+        <!-- Grid de Imagenes -->
+        <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
+        @if (images?.Count == 0)
         {
             <FluentMessageBar Intent="MessageIntent.Info">No hay imágenes.</FluentMessageBar>
         }
@@ -87,7 +201,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach (var img in images)
+                    @foreach (var img in images!)
                     {
                         <tr>
                             <td>@(img.RepoTags != null && img.RepoTags.Count > 0 ? string.Join(", ", img.RepoTags) : "<sin tag>")</td>
@@ -95,8 +209,9 @@
                             <td>@FormatSize(img.Size)</td>
                             <td>@img.Created.ToString("yyyy-MM-dd HH:mm")</td>
                             <td>
-                                <FluentButton Appearance="Appearance.Outline" OnClick="@(() => DeleteImage(img.ID))" Disabled="@(!_canWrite)">
-                                    Eliminar
+                                <FluentButton Size="ButtonSize.Small" Appearance="Appearance.Outline" Title="Eliminar" 
+                                    OnClick="@(() => DeleteImage(img.ID))" Disabled="@(!_canWrite)">
+                                    <FluentIcon Value="@(new Icons.Regular.Size16.Delete())" Color="Color.Error" />
                                 </FluentButton>
                             </td>
                         </tr>
@@ -116,6 +231,7 @@
     private bool isLoading = true;
     private string? authUserId;
     private bool _canWrite;
+    private bool isConnected = false;
 
     private bool isPulling = false;
     private string pullImageName = string.Empty;
@@ -157,10 +273,110 @@
 
     private async Task<IList<ImagesListResponse>> LoadImages()
     {
-        if (server == null) return null!;
-        return await DockerService.GetImages(server);
+        IList<ImagesListResponse> images = null!;
+
+        if (server != null)
+        {
+            var (success, message) = await DockerService.TestConnection(server);
+            isConnected = success;
+
+            if (isConnected)
+            {
+                images = await DockerService.GetImages(server);
+            }
+        }
+
+        return images;
     }
 
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private bool isRefreshing = false;
+
+    private async Task RefreshImages()
+    {
+        isRefreshing = true;
+        StateHasChanged();
+
+        images = await LoadImages();
+
+        isRefreshing = false;
+        StateHasChanged();
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // Nueva Imagen
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    private object newImage = new();
+    private bool IsOnNewImage = false;
+    private bool isCreating = false;
+
+    private void NewImage()
+    {
+        newImage = new object(); // new ContainerView();
+        IsOnNewImage = true;
+        isCreating = false;
+        StateHasChanged();
+    }
+
+    private async Task CreateImage()
+    {
+        if (!_canWrite) { ToastService.ShowError("No tienes permiso para esta acción."); return; }
+        if (server == null) return;
+
+        isCreating = true;
+        StateHasChanged();
+
+        // var parameters = new CreateContainerParameters
+        // {
+        //     Image = newContainer.Image.Trim(),
+        //     Name = string.IsNullOrWhiteSpace(newContainer.Name) ? null : newContainer.Name.Trim(),
+        //     Env = ParseEnvVars(newContainer.EnvVars),
+        //     HostConfig = new HostConfig
+        //     {
+        //         PortBindings = ParsePortBindings(newContainer.Ports)
+        //     },
+        //     ExposedPorts = ParseExposedPorts(newContainer.Ports)
+        // };
+
+        // if (!string.IsNullOrWhiteSpace(newContainer.Command))
+        // {
+        //     parameters.Cmd = newContainer.Command.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        // }
+
+        // var (success, message, containerId) = await DockerService.CreateContainer(server, parameters);
+
+        // if (success && newContainer.AutoStart && containerId != null)
+        // {
+        //     await DockerService.StartContainer(server, containerId);
+        //     ToastService.ShowSuccess("Contenedor creado e iniciado correctamente");
+        // }
+        // else if (success)
+        // {
+        //     ToastService.ShowSuccess("Contenedor creado correctamente");
+        // }
+        // else
+        // {
+        //     ToastService.ShowError(message);
+        // }
+
+        IsOnNewImage = false;
+        isCreating = false;
+
+        await RefreshImages();
+        CancelNewImage();
+    }
+
+    private void CancelNewImage()
+    {
+        newImage = null!;
+        IsOnNewImage = false;
+        isCreating = false;
+        StateHasChanged();
+    }
+
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
+    // ----------------------------------------------------------------------------------------------------------------------------------------------
     private async Task PullImage()
     {
         if (!_canWrite) 
@@ -168,14 +384,14 @@
             ToastService.ShowToast(ToastIntent.Error, "No tienes permiso para esta acción."); 
             return; 
         }
-        
+
         if (server == null || string.IsNullOrWhiteSpace(pullImageName)) return;
 
         isPulling = true;
         StateHasChanged();
 
         var (success, message) = await DockerService.PullImage(server, pullImageName);
-        
+
         isPulling = false;
         StateHasChanged();
 
@@ -184,7 +400,9 @@
         if (success)
         {
             pullImageName = string.Empty;
-           images = await LoadImages();
+            //images = await LoadImages();
+            await RefreshImages();
+            CancelNewImage();
         }
     }
 
@@ -206,7 +424,8 @@
         ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
         
         if (success) {
-            images = await LoadImages();
+            //images = await LoadImages();
+            await RefreshImages();
         }
     }
 
@@ -254,7 +473,9 @@
                 ToastService.ShowToast(success ? ToastIntent.Success : ToastIntent.Error, message);
                 if (success)
                 {
-                    images = await LoadImages();
+                    //images = await LoadImages();
+                    await RefreshImages();
+                    CancelNewImage();
                 }
             }
         }
