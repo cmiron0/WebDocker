@@ -57,7 +57,7 @@
         <!-- ---------------------------------------------------------------------------------------------------------------------------------------- -->
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 style="color:var(--acento-oscuro); margin:0;">
-                <FluentIcon Value="@(new Icons.Regular.Size24.BoxMultiple())" Style="margin-right:6px;" />
+                <FluentIcon Value="@(new Icons.Regular.Size24.Image())" Style="margin-right:6px;" />
                 Imagenes (@(images?.Count ?? 0))
             </h4>
             <div class="d-flex gap-2">
@@ -80,18 +80,18 @@
             <FluentCard Style="margin-bottom:16px; border: 2px solid var(--Amarillo);">
                 <h5 style="color:var(--Dark-Amarillo); margin-bottom:12px;">
                     <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Style="margin-right:6px;" />
-                    Crear nueva imagen (Docker Hub)
+                    Crear nueva imagen 
                 </h5>
 
                 <!-- Descargar desde repositorio. -->
                 <FluentCard Style="margin-bottom:16px; border: 2px solid var(--accent-one);">
                     <h5 style="color:var(--Dark-Amarillo); margin-bottom:12px;">
                         <FluentIcon Value="@(new Icons.Regular.Size20.Add())" Style="margin-right:6px;" />
-                        Descargar imagen 
+                        Descargar imagen (Docker Hub)
                     </h5>
 
                     <div class="d-flex gap-2 my-3">
-                        <FluentTextField @bind-Value="pullImageName" Placeholder="imagen:tag (ej. nginx:latest)" />
+                        <FluentTextField @bind-Value="pullImageName" Style="width:30%;"  Placeholder="imagen:tag (ej. nginx:latest)" />
                         <FluentButton Appearance="Appearance.Accent" OnClick="@PullImage" Disabled="@(isPulling || !_canWrite)">
                             @(isPulling ? "Descargando..." : "Descargar imagen")
                         </FluentButton>
@@ -107,7 +107,7 @@
 
                     <div class="d-flex gap-2 my-3 align-items-center">
                         <label class="fw-bold mb-0">Cargar desde .tar:</label>
-                        <InputFile OnChange="@OnTarSelected" accept=".tar" disabled="@(isLoadingTar || !_canWrite)" />
+                        <InputFile OnChange="@OnTarSelected" accept=".tar" disabled="@(isLoadingTar || !_canWrite)" Style="width:30%;" />
                         @if (isLoadingTar)
                         {
                             <FluentProgressRing style="width:20px; height:20px;" />
