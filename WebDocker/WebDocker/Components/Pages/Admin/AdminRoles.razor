@@ -67,7 +67,7 @@
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-bold">Nombre del Rol</label>
-                        <FluentTextField @bind-Value="workRole!.Name" Placeholder="Nombre del rol" Style="width:100%;" />
+                        <FluentTextField @bind-Value="workRole!.Name" Placeholder="Nombre del rol" Style="width:100%;" Disabled="@IsProtectedRole(workRole!.Name)" />
                         <ValidationMessage For="@(() => workRole.Name)" />
                     </div>
                 </div>
@@ -88,7 +88,7 @@
                 </div>
 
                 <div class="d-flex gap-2 mt-3">
-                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isSaving" Disabled="@isSaving">
+                    <FluentButton Appearance="Appearance.Accent" Type="ButtonType.Submit" Loading="@isSaving" Disabled="@(isSaving || IsProtectedRole(workRole!.Name))">
                         <FluentIcon Value="@(new Icons.Regular.Size20.Save())" Slot="start" Color="Color.Custom" CustomColor="#FFFFFF" />
                         @(IsOnNewRole ? "Crear Rol" : "Guardar Cambios")
                     </FluentButton>
@@ -148,7 +148,7 @@
             <TemplateColumn Title="Acciones" Align="Align.End">
                 <div class="d-flex gap-1">
                     <FluentButton Appearance="Appearance.Outline" Title="Editar" OnClick="@(() => EditRole(context))"
-                                  Disabled="@IsProtectedRole(context.Name)">
+                                  Disabled="@false">
                         <FluentIcon Value="@(new Icons.Regular.Size16.Edit())" />
                     </FluentButton>
                     <FluentButton Appearance="Appearance.Outline" Title="Eliminar" OnClick="@(() => DeleteRole(context))"
