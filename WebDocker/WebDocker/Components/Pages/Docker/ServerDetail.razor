@@ -1,14 +1,14 @@
 @page "/docker/serverdetail/{ServerId:int}"
 
+@using System.ComponentModel.DataAnnotations
+@using System.Diagnostics
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
-@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
-
-@using global::Docker.DotNet.Models
-@using System.ComponentModel.DataAnnotations
 @using WebDocker.Data
 @using WebDocker.Services
+@using global::Docker.DotNet.Models
 
 @attribute [Authorize]
 @rendermode InteractiveServer
@@ -336,6 +336,13 @@
 
             </FluentDataGrid>
             <FluentPaginator State="@pagination" />
+
+            <p style="padding-left:15px;padding-top:1px;background-color:transparent;">Total: <strong>@containers?.Count() containers found</strong>  <strong>@($"{@OpTime:N0} ms.")</strong></p>
+
+            if (OpTimeTotal > 0)
+            {
+                <p style="padding-left:15px;padding-top:1px;background-color:transparent;">Crear Contenedor: <strong>@($"{@OpTimeTotal:N0} ms.")</strong> => (Crear: <strong>@($"{@OpTimeContainer:N0} ms.")</strong>, Refresh: <strong>@($"{@OpTimeRefresh:N0} ms.")</strong>)    </p>
+            }
         }
         else if (isConnected)
         {
@@ -477,6 +484,12 @@
 
     PaginationState pagination = new PaginationState { ItemsPerPage = 15 };
 
+    private double OpTime = 0;
+
+    // Crear contenedor
+    private double OpTimeContainer = 0;
+    private double OpTimeRefresh = 0;
+    private double OpTimeTotal = 0;
 
     private void GoBack() => Navigation.NavigateTo("/docker/serverlist");
     private string GetOSColor(string os) => os == "Linux" ? "var(--accent-five)" : "var(--accent-one)";
@@ -515,7 +528,10 @@
                 isConnecting = true;
                 StateHasChanged();
 
+                var sw = Stopwatch.StartNew();
                 await LoadDockerData();
+                sw.Stop();
+                OpTime = sw.ElapsedMilliseconds;
 
                 connectionAttempted = true;
                 isConnecting = false;
@@ -592,6 +608,9 @@
         isCreating = true;
         StateHasChanged();
 
+        var sw = Stopwatch.StartNew();
+        long t0 = Stopwatch.GetTimestamp();
+
         var parameters = new CreateContainerParameters
         {
             Image = newContainer.Image.Trim(),
@@ -624,10 +643,22 @@
         {
             ToastService.ShowError(message);
         }
+        
+        sw.Stop();
+        OpTimeContainer = sw.ElapsedMilliseconds;
 
         IsOnNewContainer = false;
         isCreating = false;
+
+        long t1 = Stopwatch.GetTimestamp();
         await RefreshContainers();
+
+        long t2 = Stopwatch.GetTimestamp();
+
+        OpTimeContainer = Stopwatch.GetElapsedTime(t0, t1).TotalMilliseconds;
+        OpTimeRefresh = Stopwatch.GetElapsedTime(t1, t2).TotalMilliseconds;
+        OpTimeTotal = Stopwatch.GetElapsedTime(t0, t2).TotalMilliseconds;
+
     }
 
     private void CancelNewContainer()

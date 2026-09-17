@@ -1,10 +1,11 @@
 @page "/docker/serverlist"
 
 
+@using System.Diagnostics
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
-@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using WebDocker.Data
 @using WebDocker.Services
 
@@ -207,6 +208,7 @@
             }
         </div>
  
+        <p style="padding-left:15px;padding-top:1px;background-color:transparent;">Total: <strong>@servers.Count() servers found</strong>  <strong>@($"{@OpTime:N0} ms.")</strong></p>
     }
 </div>
 
@@ -227,6 +229,7 @@
     private string? connectionTestMessage;
     private bool connectionTestSuccess;
 
+    private double OpTime = 0;
 
     // ----------------------------------------------------------------------------------------------------------------------------------------------
     protected override async Task OnInitializedAsync()
@@ -248,7 +251,10 @@
         {
             if (!string.IsNullOrEmpty(authUserId))
             {
+                var sw = Stopwatch.StartNew();
                 servers = await ServerService.GetServers(authUserId);
+                sw.Stop();
+                OpTime = sw.ElapsedMilliseconds;
             }
             isLoading = false;
             StateHasChanged();

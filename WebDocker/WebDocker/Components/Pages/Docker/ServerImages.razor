@@ -1,14 +1,14 @@
 @page "/docker/server/images/{ServerId:int}"
 
+@using System.Diagnostics
+@using System.Formats.Tar;
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
-@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
-@using System.Formats.Tar;
-
-@using global::Docker.DotNet.Models
 @using WebDocker.Data
 @using WebDocker.Services
+@using global::Docker.DotNet.Models
 
 @attribute [Authorize]
 @rendermode InteractiveServer
@@ -220,6 +220,8 @@
                 </tbody>
             </table>
         }
+
+        <p style="padding-left:15px;padding-top:1px;background-color:transparent;">Total: <strong>@images?.Count() images found</strong>  <strong>@($"{@OpTime:N0} ms.")</strong></p>
     }
 </div>
 
@@ -238,7 +240,7 @@
     private string pullImageName = string.Empty;
 
     private bool isLoadingTar = false;
-
+    private double OpTime = 0;
 
     private void GoBack() => Navigation.NavigateTo($"/docker/serverdetail/{ServerId}");
 
@@ -264,7 +266,10 @@
             server = await ServerService.GetServerById(ServerId, authUserId!);
             if (server != null)
             {
+                var sw = Stopwatch.StartNew();
                 images = await LoadImages();
+                sw.Stop();
+                OpTime = sw.ElapsedMilliseconds;
             }
             isLoading = false;
             StateHasChanged();

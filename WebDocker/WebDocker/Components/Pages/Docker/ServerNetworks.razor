@@ -1,13 +1,13 @@
 @page "/docker/server/networks/{ServerId:int}"
 
+@using System.Diagnostics
+@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
 @using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Authorization
 @using Microsoft.FluentUI.AspNetCore.Components
-@using Icons = Microsoft.FluentUI.AspNetCore.Components.Icons
-
-@using global::Docker.DotNet.Models
 @using WebDocker.Data
 @using WebDocker.Services
+@using global::Docker.DotNet.Models
 
 @attribute [Authorize]
 @rendermode InteractiveServer
@@ -100,6 +100,8 @@
                 </tbody>
             </table>
         }
+
+        <p style="padding-left:15px;padding-top:1px;background-color:transparent;">Total: <strong>@networks?.Count() networks found</strong>  <strong>@($"{@OpTime:N0} ms.")</strong></p>
     }
 </div>
 
@@ -116,6 +118,7 @@
     private bool isCreating = false;
     private string newNetworkName = string.Empty;
     private string newNetworkDriver = "bridge";
+    private double OpTime = 0;
 
     private void GoBack() => Navigation.NavigateTo($"/docker/serverdetail/{ServerId}");
 
@@ -139,7 +142,10 @@
             server = await ServerService.GetServerById(ServerId, authUserId!);
             if (server != null)
             {
+                var sw = Stopwatch.StartNew();
                 networks = await LoadNetworks();
+                sw.Stop();
+                OpTime = sw.ElapsedMilliseconds;
             }
             isLoading = false;
             StateHasChanged();
