@@ -7,13 +7,8 @@ using WebDocker.Data;
 
 namespace WebDocker.Services;
 
-// https://www.nuget.org/profiles/Docker.DotNet
-// https://github.com/dotnet/Docker.DotNet
-// https://www.developerro.com/2023/05/03/mtls-aspnet-core/
-
-public class DockerService
+public class DockerEngineService
 {
-
     // Crea el cliente Docker para un servidor. Si el servidor usa TLS (puerto 2376) y tiene
     // certificados guardados, monta una conexión TLS mutua (cert de cliente + validación de CA).
     private DockerClient CreateClient(DockerServer server)
@@ -83,13 +78,10 @@ public class DockerService
         return chain.Build(cert);
     }
 
-
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
     /// <summary>
     /// Verifica si el servidor Docker es accesible.
     /// </summary>
-    public async Task<(bool Success, string Message)> TestConnection(DockerServer server)
+    public async Task<(bool Success, string Message)> TestConnectionAsync(DockerServer server)
     {
         try
         {
@@ -104,13 +96,10 @@ public class DockerService
         }
     }
 
-
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
     /// <summary>
     /// Obtiene información del Docker Engine (versión, OS, contenedores, imágenes).
     /// </summary>
-    public async Task<DockerEngineInfo?> GetDockerInfo(DockerServer server)
+    public async Task<DockerEngineInfo?> GetDockerInfoAsync(DockerServer server)
     {
         try
         {
@@ -143,13 +132,10 @@ public class DockerService
         }
     }
 
-
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
     /// <summary>
     /// Lista todos los contenedores (en ejecución y detenidos).
     /// </summary>
-    public async Task<IList<ContainerListResponse>> GetContainers(DockerServer server)
+    public async Task<IList<ContainerListResponse>> GetContainersAsync(DockerServer server)
     {
         try
         {
@@ -166,7 +152,7 @@ public class DockerService
     /// <summary>
     /// Obtiene los detalles de un contenedor específico.
     /// </summary>
-    public async Task<ContainerInspectResponse?> GetContainerDetails(DockerServer server, string containerId)
+    public async Task<ContainerInspectResponse?> GetContainerDetailsAsync(DockerServer server, string containerId)
     {
         try
         {
@@ -183,7 +169,8 @@ public class DockerService
     /// <summary>
     /// Crea un nuevo contenedor.
     /// </summary>
-    public async Task<(bool Success, string Message, string? ContainerId)> CreateContainer(DockerServer server, CreateContainerParameters parameters)
+    public async Task<(bool Success, string Message, string? ContainerId)> CreateContainerAsync(
+        DockerServer server, CreateContainerParameters parameters)
     {
         try
         {
@@ -216,7 +203,7 @@ public class DockerService
     /// <summary>
     /// Inicia un contenedor.
     /// </summary>
-    public async Task<(bool Success, string Message)> StartContainer(DockerServer server, string containerId)
+    public async Task<(bool Success, string Message)> StartContainerAsync(DockerServer server, string containerId)
     {
         try
         {
@@ -236,7 +223,7 @@ public class DockerService
     /// <summary>
     /// Detiene un contenedor.
     /// </summary>
-    public async Task<(bool Success, string Message)> StopContainer(DockerServer server, string containerId)
+    public async Task<(bool Success, string Message)> StopContainerAsync(DockerServer server, string containerId)
     {
         try
         {
@@ -256,7 +243,7 @@ public class DockerService
     /// <summary>
     /// Reinicia un contenedor.
     /// </summary>
-    public async Task<(bool Success, string Message)> RestartContainer(DockerServer server, string containerId)
+    public async Task<(bool Success, string Message)> RestartContainerAsync(DockerServer server, string containerId)
     {
         try
         {
@@ -274,7 +261,7 @@ public class DockerService
     /// <summary>
     /// Elimina un contenedor (forzando la detención si es necesario).
     /// </summary>
-    public async Task<(bool Success, string Message)> RemoveContainer(DockerServer server, string containerId)
+    public async Task<(bool Success, string Message)> RemoveContainerAsync(DockerServer server, string containerId)
     {
         try
         {
@@ -292,7 +279,7 @@ public class DockerService
     /// <summary>
     /// Renombra un contenedor.
     /// </summary>
-    public async Task<(bool Success, string Message)> RenameContainer(DockerServer server, string containerId, string newName)
+    public async Task<(bool Success, string Message)> RenameContainerAsync(DockerServer server, string containerId, string newName)
     {
         try
         {
@@ -308,9 +295,196 @@ public class DockerService
     }
 
     /// <summary>
+    /// Lista las imágenes disponibles en el servidor.
+    /// </summary>
+    public async Task<IList<ImagesListResponse>> GetImagesAsync(DockerServer server)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            return await client.Images.ListImagesAsync(new ImagesListParameters { All = false }, cts.Token);
+        }
+        catch
+        {
+            return new List<ImagesListResponse>();
+        }
+    }
+
+    public async Task<(bool Success, string Message)> PullImageAsync(DockerServer server, string imageName)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            await client.Images.CreateImageAsync(
+                new ImagesCreateParameters { FromImage = imageName },
+                null,
+                new Progress<JSONMessage>(),
+                cts.Token);
+            return (true, $"Imagen {imageName} descargada");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al descargar imagen: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Carga una imagen desde un fichero .tar (equivalente a 'docker load').
+    /// El .tar debe haberse generado con 'docker save'. La imagen queda registrada
+    /// en el almacén del host Docker remoto y aparece en el listado de imágenes.
+    /// </summary>
+    public async Task<(bool Success, string Message)> LoadImageFromTarAsync(DockerServer server, Stream tarStream)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+            await client.Images.LoadImageAsync(
+                new ImageLoadParameters(),
+                tarStream,
+                new Progress<JSONMessage>(),
+                cts.Token);
+            return (true, "Imagen cargada correctamente desde el fichero .tar");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al cargar la imagen: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Eliminar imagen.
+    /// </summary>
+    public async Task<(bool Success, string Message)> RemoveImageAsync(DockerServer server, string imageId)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await client.Images.DeleteImageAsync(imageId,
+                new ImageDeleteParameters { Force = true }, cts.Token);
+            return (true, "Imagen eliminada");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al eliminar imagen: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Lista de volumenes.
+    /// </summary>
+    public async Task<IList<VolumeResponse>> GetVolumesAsync(DockerServer server)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var response = await client.Volumes.ListAsync(cts.Token);
+            return response.Volumes ?? new List<VolumeResponse>();
+        }
+        catch
+        {
+            return new List<VolumeResponse>();
+        }
+    }
+
+    /// <summary>
+    /// Crear un volumen.
+    /// </summary>
+    public async Task<(bool Success, string Message)> CreateVolumeAsync(DockerServer server, string name)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await client.Volumes.CreateAsync(new VolumesCreateParameters { Name = name }, cts.Token);
+            return (true, $"Volumen {name} creado");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al crear volumen: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Eliminar un volumen.
+    /// </summary>
+    public async Task<(bool Success, string Message)> RemoveVolumeAsync(DockerServer server, string name)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await client.Volumes.RemoveAsync(name, force: true, cts.Token);
+            return (true, "Volumen eliminado");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al eliminar volumen: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Lista de redes.
+    /// </summary>
+    public async Task<IList<NetworkResponse>> GetNetworksAsync(DockerServer server)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            return await client.Networks.ListNetworksAsync(new NetworksListParameters(), cts.Token);
+        }
+        catch
+        {
+            return new List<NetworkResponse>();
+        }
+    }
+
+    /// <summary>
+    /// Crear una red.
+    /// </summary>
+    public async Task<(bool Success, string Message, string? NetworkId)> CreateNetworkAsync(DockerServer server, string name, string driver)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            var response = await client.Networks.CreateNetworkAsync(
+                new NetworksCreateParameters { Name = name, Driver = driver }, cts.Token);
+            return (true, $"Red {name} creada", response.ID);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al crear red: {ex.Message}", null);
+        }
+    }
+
+    /// <summary>
+    /// Eliminar un red.
+    /// </summary>
+    public async Task<(bool Success, string Message)> RemoveNetworkAsync(DockerServer server, string networkId)
+    {
+        try
+        {
+            using var client = CreateClient(server);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+            await client.Networks.DeleteNetworkAsync(networkId, cts.Token);
+            return (true, "Red eliminada");
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Error al eliminar red: {ex.Message}");
+        }
+    }
+
+    /// <summary>
     /// Pausa un contenedor (congela sus procesos sin pararlo del todo).
     /// </summary>
-    public async Task<(bool Success, string Message)> PauseContainer(DockerServer server, string containerId)
+    public async Task<(bool Success, string Message)> PauseContainerAsync(DockerServer server, string containerId)
     {
         try
         {
@@ -328,7 +502,7 @@ public class DockerService
     /// <summary>
     /// Reanuda un contenedor previamente pausado.
     /// </summary>
-    public async Task<(bool Success, string Message)> UnPauseContainer(DockerServer server, string containerId)
+    public async Task<(bool Success, string Message)> UnpauseContainerAsync(DockerServer server, string containerId)
     {
         try
         {
@@ -346,7 +520,7 @@ public class DockerService
     /// <summary>
     /// Log de un contenedor
     /// </summary>
-    public async Task<string> GetContainerLogs(DockerServer server, string containerId, int tail = 200)
+    public async Task<string> GetContainerLogsAsync(DockerServer server, string containerId, int tail = 200)
     {
         try
         {
@@ -372,12 +546,12 @@ public class DockerService
     /// <summary>
     /// Muestra de estadísticas (CPU y memoria) de un contenedor y calcula los porcentajes.
     /// </summary>
-    public async Task<ContainerStats?> GetContainerStats(DockerServer server, string containerId)
+    public async Task<ContainerStats?> GetContainerStatsAsync(DockerServer server, string containerId)
     {
         try
         {
             using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(20));
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
 
             ContainerStatsResponse? sample = null;
 
@@ -421,209 +595,8 @@ public class DockerService
             return null;
         }
     }
-
-
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Lista las imágenes disponibles en el servidor.
-    /// </summary>
-    public async Task<IList<ImagesListResponse>> GetImages(DockerServer server)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            return await client.Images.ListImagesAsync(new ImagesListParameters { All = false }, cts.Token);
-        }
-        catch
-        {
-            return new List<ImagesListResponse>();
-        }
-    }
-
-
-    /// <summary>
-    /// Descargar imágen del servidor.
-    /// </summary>
-    public async Task<(bool Success, string Message)> PullImage(DockerServer server, string imageName)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(5));
-            await client.Images.CreateImageAsync(
-                new ImagesCreateParameters { FromImage = imageName },
-                null,
-                new Progress<JSONMessage>(),
-                cts.Token);
-            return (true, $"Imagen {imageName} descargada");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error al descargar imagen: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Carga una imagen desde un fichero .tar (equivalente a 'docker load').
-    /// El .tar debe haberse generado con 'docker save'. La imagen queda registrada
-    /// en el almacén del host Docker remoto y aparece en el listado de imágenes.
-    /// </summary>
-    public async Task<(bool Success, string Message)> LoadImage(DockerServer server, Stream tarStream)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
-            await client.Images.LoadImageAsync(
-                new ImageLoadParameters(),
-                tarStream,
-                new Progress<JSONMessage>(),
-                cts.Token);
-            return (true, "Imagen cargada correctamente desde el fichero .tar");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error al cargar la imagen: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Eliminar imagen.
-    /// </summary>
-    public async Task<(bool Success, string Message)> RemoveImage(DockerServer server, string imageId)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
-            await client.Images.DeleteImageAsync(imageId,
-                new ImageDeleteParameters { Force = true }, cts.Token);
-            return (true, "Imagen eliminada");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error al eliminar imagen: {ex.Message}");
-        }
-    }
-
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Lista de volumenes.
-    /// </summary>
-    public async Task<IList<VolumeResponse>> GetVolumes(DockerServer server)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var response = await client.Volumes.ListAsync(cts.Token);
-            return response.Volumes ?? new List<VolumeResponse>();
-        }
-        catch
-        {
-            return new List<VolumeResponse>();
-        }
-    }
-
-    /// <summary>
-    /// Crear un volumen.
-    /// </summary>
-    public async Task<(bool Success, string Message)> CreateVolume(DockerServer server, string name)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            await client.Volumes.CreateAsync(new VolumesCreateParameters { Name = name }, cts.Token);
-            return (true, $"Volumen {name} creado");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error al crear volumen: {ex.Message}");
-        }
-    }
-
-    /// <summary>
-    /// Eliminar un volumen.
-    /// </summary>
-    public async Task<(bool Success, string Message)> RemoveVolume(DockerServer server, string name)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            await client.Volumes.RemoveAsync(name, force: true, cts.Token);
-            return (true, "Volumen eliminado");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error al eliminar volumen: {ex.Message}");
-        }
-    }
-
-
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    // ----------------------------------------------------------------------------------------------------------------------------------------------
-    /// <summary>
-    /// Lista de redes.
-    /// </summary>
-    public async Task<IList<NetworkResponse>> GetNetworks(DockerServer server)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            return await client.Networks.ListNetworksAsync(new NetworksListParameters(), cts.Token);
-        }
-        catch
-        {
-            return new List<NetworkResponse>();
-        }
-    }
-
-    /// <summary>
-    /// Crear una red.
-    /// </summary>
-    public async Task<(bool Success, string Message, string? NetworkId)> CreateNetwork(DockerServer server, string name, string driver)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            var response = await client.Networks.CreateNetworkAsync(new NetworksCreateParameters { Name = name, Driver = driver }, cts.Token);
-            return (true, $"Red {name} creada", response.ID);
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error al crear red: {ex.Message}", null);
-        }
-    }
-
-    /// <summary>
-    /// Eliminar un red.
-    /// </summary>
-    public async Task<(bool Success, string Message)> RemoveNetwork(DockerServer server, string networkId)
-    {
-        try
-        {
-            using var client = CreateClient(server);
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-            await client.Networks.DeleteNetworkAsync(networkId, cts.Token);
-            return (true, "Red eliminada");
-        }
-        catch (Exception ex)
-        {
-            return (false, $"Error al eliminar red: {ex.Message}");
-        }
-    }
-
 }
 
-// ----------------------------------------------------------------------------------------------------------------------------------------------
-// ----------------------------------------------------------------------------------------------------------------------------------------------
 /// <summary>
 /// DTO estadísticas de uso de un contenedor.
 /// </summary>
