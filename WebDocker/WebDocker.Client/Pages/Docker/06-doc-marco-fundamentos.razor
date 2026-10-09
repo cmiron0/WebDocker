@@ -25,13 +25,17 @@
             
             <h3 class="doc-h3">Arquitectura de Docker</h3>
             <p class="doc-p">Docker sigue un modelo cliente-servidor con tres componentes: </p>
-            <p class="doc-p">• El Cliente Docker: la herramienta con la que interactúan los usuarios. En este proyecto, la plataforma web actúa como cliente de Docker y traduce las acciones del usuario en llamadas a la API de Docker Engine.</p>
+            <p class="doc-p">• El Cliente Docker: la herramienta con la que interactúan los usuarios.</p>
             <p class="doc-p">• El Docker Engine (dockerd – Docker daemon): un proceso que se ejecuta en el servidor anfitrión, responsable de construir y gestionar imágenes, contenedores, volúmenes y redes.</p>
             <p class="doc-p">• El Docker Registry: un servicio para almacenar y distribuir imágenes de Docker. El registro público por defecto es Docker Hub (Docker Hub, s. f.), aunque también se pueden usar registros privados.</p>
-            <p class="doc-p">Estos componentes se comunican mediante API REST o gRPC, y eso es lo que permite construir herramientas externas y automatizar (Revistas Unilibre, s. f.; Docker, s. f.). En la práctica, nuestra plataforma vive en esa capa, traduce lo que el usuario hace en la interfaz a llamadas contra la API de Docker.</p>
+            <p class="doc-p">Estos componentes se comunican mediante API REST o gRPC, y eso es lo que permite construir herramientas externas y automatizar (Revistas Unilibre, s. f.; Docker, s. f.).</p>
+
+            <p class="doc-p">La base del aislamiento procede de tres mecanismos del kernel de Linux. Los namespaces reparten la visión del sistema, cada contenedor recibe su propio espacio de procesos, red, puntos de montaje, usuarios y comunicación entre procesos. Los cgroups limitan y contabilizan el consumo de CPU, memoria, entrada/salida y red, de modo que un contenedor no agote el anfitrión. Los sistemas de archivos de unión, habitualmente OverlayFS, componen la imagen en capas de solo lectura y añaden una capa de escritura por contenedor, lo que hace inmediata su creación y evita duplicar el contenido base.</p>
+            <p class="doc-p">El Engine tampoco es un proceso único, dockerd atiende la API REST y delega el ciclo de vida en containerd, que invoca un runtime conforme a la especificación de la Open Container Initiative, normalmente runc, encargado de crear el proceso aislado. Esa separación permite que una herramienta externa opere siempre contra la misma API, con independencia del runtime.</p>
+
             
             <h3 class="doc-h3">Componentes Principales</h3>
-            <p class="doc-p">Los objetos principales de Docker que la plataforma gestionara son:</p>
+            <p class="doc-p">Los objetos principales del modelo de Docker son:</p>
             <p class="doc-p">• Imágenes: plantillas de solo lectura que definen el contenido de un contenedor. Incluyen el código, el entorno de ejecución, las bibliotecas y las dependencias. Se construyen desde un Dockerfile y se almacenan en un registro.</p>
             <p class="doc-p">• Contenedores: instancias de una imagen en ejecución. A diferencia de las imágenes, son entornos ejecutables que pueden iniciarse, detenerse, reiniciarse o eliminarse a través de la API o la CLI.</p>
             <p class="doc-p">• Dockerfiles: archivos de texto con las instrucciones para construir una imagen.</p>
